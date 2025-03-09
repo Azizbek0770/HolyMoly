@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,6 +39,19 @@ import {
 export default function ProfilePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("personal");
+  const [formData, setFormData] = useState({
+    fullName: user?.name || "",
+    email: user?.email || "",
+    phone: "(555) 123-4567",
+    dob: "1990-01-01",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const [paymentMethods, setPaymentMethods] = useState([
     {
       id: "1",
@@ -79,6 +92,124 @@ export default function ProfilePage() {
 
   const [loyaltyPoints, setLoyaltyPoints] = useState(450);
   const [membershipTier, setMembershipTier] = useState("Silver");
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.name,
+        email: user.email,
+      }));
+    }
+  }, [user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+
+    // Clear error when user types
+    if (formErrors[id]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[id];
+        return newErrors;
+      });
+    }
+
+    // Clear success message when user makes changes
+    if (successMessage) {
+      setSuccessMessage("");
+    }
+  };
+
+  const validatePersonalInfo = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.fullName.trim()) {
+      errors.fullName = "Name is required";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      errors.email = "Email is invalid";
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required";
+    }
+
+    return errors;
+  };
+
+  const validatePasswordChange = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.currentPassword) {
+      errors.currentPassword = "Current password is required";
+    }
+
+    if (!formData.newPassword) {
+      errors.newPassword = "New password is required";
+    } else if (formData.newPassword.length < 8) {
+      errors.newPassword = "Password must be at least 8 characters";
+    }
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    return errors;
+  };
+
+  const handleSavePersonalInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors = validatePersonalInfo();
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      // In a real app, you would update the user profile here
+      setSuccessMessage("Personal information updated successfully");
+      setIsSubmitting(false);
+    }, 1000);
+  };
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors = validatePasswordChange();
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      // In a real app, you would update the password here
+      setSuccessMessage("Password updated successfully");
+      setFormData((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setIsSubmitting(false);
+    }, 1000);
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -145,67 +276,106 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    defaultValue={user?.name || ""}
-                    placeholder="Your full name"
-                  />
+              {successMessage && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                  {successMessage}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    defaultValue={user?.email || ""}
-                    placeholder="Your email address"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    defaultValue="(555) 123-4567"
-                    placeholder="Your phone number"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
-                  <Input id="dob" type="date" defaultValue="1990-01-01" />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Notification Preferences</Label>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="order-updates">Order Updates</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications about your order status
+              )}
+              <form id="personal-info-form" onSubmit={handleSavePersonalInfo}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      placeholder="Your full name"
+                      className={formErrors.fullName ? "border-red-500" : ""}
+                    />
+                    {formErrors.fullName && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.fullName}
                       </p>
-                    </div>
-                    <Switch id="order-updates" defaultChecked />
+                    )}
                   </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="promotions">Promotions</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive emails about new offers and discounts
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="Your email address"
+                      className={formErrors.email ? "border-red-500" : ""}
+                    />
+                    {formErrors.email && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.email}
                       </p>
-                    </div>
-                    <Switch id="promotions" defaultChecked />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="Your phone number"
+                      className={formErrors.phone ? "border-red-500" : ""}
+                    />
+                    {formErrors.phone && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Input
+                      id="dob"
+                      type="date"
+                      value={formData.dob}
+                      onChange={handleInputChange}
+                    />
                   </div>
                 </div>
-              </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-2">
+                  <Label>Notification Preferences</Label>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="order-updates">Order Updates</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive notifications about your order status
+                        </p>
+                      </div>
+                      <Switch id="order-updates" defaultChecked />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="promotions">Promotions</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Receive emails about new offers and discounts
+                        </p>
+                      </div>
+                      <Switch id="promotions" defaultChecked />
+                    </div>
+                  </div>
+                </div>
+              </form>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button>Save Changes</Button>
+              <Button
+                type="submit"
+                form="personal-info-form"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
             </CardFooter>
           </Card>
 
@@ -217,36 +387,73 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  placeholder="Enter your current password"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="Enter new password"
-                  />
+              {successMessage && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                  {successMessage}
                 </div>
+              )}
+              <form onSubmit={handleUpdatePassword}>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="currentPassword">Current Password</Label>
                   <Input
-                    id="confirm-password"
+                    id="currentPassword"
                     type="password"
-                    placeholder="Confirm new password"
+                    value={formData.currentPassword}
+                    onChange={handleInputChange}
+                    placeholder="Enter your current password"
+                    className={
+                      formErrors.currentPassword ? "border-red-500" : ""
+                    }
                   />
+                  {formErrors.currentPassword && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.currentPassword}
+                    </p>
+                  )}
                 </div>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={formData.newPassword}
+                      onChange={handleInputChange}
+                      placeholder="Enter new password"
+                      className={formErrors.newPassword ? "border-red-500" : ""}
+                    />
+                    {formErrors.newPassword && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.newPassword}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm new password"
+                      className={
+                        formErrors.confirmPassword ? "border-red-500" : ""
+                      }
+                    />
+                    {formErrors.confirmPassword && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.confirmPassword}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Updating..." : "Update Password"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button>Update Password</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
 

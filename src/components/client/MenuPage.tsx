@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,15 +90,80 @@ const mockFoodItems: FoodItem[] = [
   },
 ];
 
+import Pagination from "./Pagination";
+import SearchBar from "./SearchBar";
+
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState("recommended");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
+  const [showFilters, setShowFilters] = useState(false);
+  const itemsPerPage = 6;
 
-  const filteredItems =
-    activeCategory === "All"
-      ? mockFoodItems
-      : activeCategory === "Popular"
-        ? mockFoodItems.filter((item) => item.rating >= 4.5)
-        : mockFoodItems.filter((item) => item.category === activeCategory);
+  // Filter items based on category, search query, and price range
+  const filteredItems = mockFoodItems.filter((item) => {
+    // Category filter
+    const categoryMatch =
+      activeCategory === "All"
+        ? true
+        : activeCategory === "Popular"
+          ? item.rating >= 4.5
+          : item.category === activeCategory;
+
+    // Search filter
+    const searchMatch =
+      searchQuery === ""
+        ? true
+        : item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Price filter
+    const priceMatch =
+      item.price >= priceRange[0] && item.price <= priceRange[1];
+
+    return categoryMatch && searchMatch && priceMatch;
+  });
+
+  // Sort items
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    switch (sortBy) {
+      case "price-low":
+        return a.price - b.price;
+      case "price-high":
+        return b.price - a.price;
+      case "rating":
+        return b.rating - a.rating;
+      case "time":
+        return a.preparationTime - b.preparationTime;
+      default: // recommended
+        return b.rating - a.rating; // Default sort by rating
+    }
+  });
+
+  // Paginate items
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedItems = sortedItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchQuery, sortBy, priceRange]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of results
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -110,11 +175,15 @@ export default function MenuPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+          >
             <Filter className="h-4 w-4 mr-2" />
-            Filters
+            {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
-          <Select defaultValue="recommended">
+          <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -128,6 +197,39 @@ export default function MenuPage() {
           </Select>
         </div>
       </div>
+
+      {/* Search bar for mobile */}
+      <div className="md:hidden mb-4">
+        <SearchBar onSearch={handleSearch} />
+      </div>
+
+      {/* Advanced filters */}
+      {showFilters && (
+        <div className="bg-muted/30 rounded-lg p-4 mb-4">
+          <h3 className="font-medium mb-3">Price Range</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm">${priceRange[0]}</span>
+                <span className="text-sm">${priceRange[1]}</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="5"
+                  value={priceRange[1]}
+                  onChange={(e) =>
+                    setPriceRange([priceRange[0], parseInt(e.target.value)])
+                  }
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Featured Event Banner */}
       <div className="relative rounded-lg overflow-hidden my-4">
@@ -166,39 +268,29 @@ export default function MenuPage() {
         </div>
 
         {/* Pagination controls */}
-        <div className="flex items-center justify-between mt-4 mb-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 mb-2">
+          <p className="text-sm text-muted-foreground mb-2 sm:mb-0">
             Showing{" "}
-            <span className="font-medium">1-{filteredItems.length}</span> of{" "}
-            <span className="font-medium">{filteredItems.length}</span> items
+            <span className="font-medium">
+              {(currentPage - 1) * itemsPerPage + 1}-
+              {Math.min(currentPage * itemsPerPage, filteredItems.length)}
+            </span>{" "}
+            of <span className="font-medium">{filteredItems.length}</span> items
           </p>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-primary text-primary-foreground"
-            >
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              2
-            </Button>
-            <Button variant="outline" size="sm">
-              3
-            </Button>
-            <Button variant="outline" size="sm">
-              Next
-            </Button>
-          </div>
+
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
 
         {categories.map((category) => (
           <TabsContent key={category} value={category} className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredItems.map((item) => (
+              {paginatedItems.map((item) => (
                 <Card key={item.id} className="overflow-hidden group relative">
                   <div className="aspect-video w-full overflow-hidden">
                     <img

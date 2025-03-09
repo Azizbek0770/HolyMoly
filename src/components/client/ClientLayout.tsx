@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SearchBar from "./SearchBar";
 import {
   ShoppingCart,
   User,
@@ -13,7 +14,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function ClientLayout() {
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount, setCartCount] = useState(2);
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("");
+
+  useEffect(() => {
+    // Set active tab based on current path
+    const path = location.pathname.split("/")[2] || "";
+    setActiveTab(path || "home");
+  }, [location]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -25,10 +34,7 @@ export default function ClientLayout() {
           </div>
 
           <div className="flex-1 max-w-md mx-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search for food..." className="pl-8" />
-            </div>
+            <SearchBar className="w-full" />
           </div>
 
           <div className="flex items-center gap-4">
@@ -65,7 +71,7 @@ export default function ClientLayout() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-10">
         <div className="grid grid-cols-4 h-16">
           <Button
-            variant="ghost"
+            variant={activeTab === "home" ? "default" : "ghost"}
             className="flex flex-col items-center justify-center rounded-none h-full"
             onClick={() => (window.location.href = "/client")}
           >
@@ -73,14 +79,14 @@ export default function ClientLayout() {
             <span className="text-xs mt-1">Home</span>
           </Button>
           <Button
-            variant="ghost"
+            variant={activeTab === "search" ? "default" : "ghost"}
             className="flex flex-col items-center justify-center rounded-none h-full"
           >
             <Search className="h-5 w-5" />
             <span className="text-xs mt-1">Search</span>
           </Button>
           <Button
-            variant="ghost"
+            variant={activeTab === "orders" ? "default" : "ghost"}
             className="flex flex-col items-center justify-center rounded-none h-full"
             onClick={() => (window.location.href = "/client/orders")}
           >
@@ -88,7 +94,7 @@ export default function ClientLayout() {
             <span className="text-xs mt-1">Orders</span>
           </Button>
           <Button
-            variant="ghost"
+            variant={activeTab === "profile" ? "default" : "ghost"}
             className="flex flex-col items-center justify-center rounded-none h-full"
             onClick={() => (window.location.href = "/client/profile")}
           >

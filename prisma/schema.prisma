@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  name              String
+  role              String    // "client", "admin", or "delivery"
+  phone             String?   
+  dateOfBirth       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  addresses         Address[]
+  paymentMethods    PaymentMethod[]
+  orders            Order[]   @relation("UserOrders")
+  deliveries        Order[]   @relation("DeliveryPersonOrders")
+  loyaltyPoints     Int       @default(0)
+  membershipTier    String    @default("Bronze") // Bronze, Silver, Gold, Platinum
+  notificationPrefs Json?     // Store notification preferences as JSON
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   // e.g., "Home", "Work"
+  address     String
+  city        String
+  state       String
+  zip         String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // e.g., "Visa", "Mastercard"
+  last4       String
+  expiry      String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FoodItem {
+  id          String       @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  category    String
+  image       String
+  available   Boolean      @default(true)
+  rating      Float        @default(0)
+  preparationTime Int      @default(15) // in minutes
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id                String       @id @default(uuid())
+  userId            String
+  user              User         @relation("UserOrders", fields: [userId], references: [id])
+  status            String       // "pending", "accepted", "picked", "delivered", "cancelled"
+  total             Float
+  deliveryAddress   String
+  deliveryTime      DateTime?
+  deliveryPersonId  String?
+  deliveryPerson    User?        @relation("DeliveryPersonOrders", fields: [deliveryPersonId], references: [id])
+  items             OrderItem[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model OrderItem {
+  id          String    @id @default(uuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  foodItemId  String
+  foodItem    FoodItem  @relation(fields: [foodItemId], references: [id])
+  quantity    Int
+  price       Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
