@@ -148,7 +148,11 @@ export default function LandingPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/client?search=${encodeURIComponent(searchQuery)}`);
+      if (user) {
+        navigate(`/client?search=${encodeURIComponent(searchQuery)}`);
+      } else {
+        navigate(`/login`);
+      }
     }
   };
 
@@ -165,11 +169,19 @@ export default function LandingPage() {
   };
 
   const handleViewRestaurant = (id: string) => {
-    navigate(`/client/restaurant/${id}`);
+    if (user) {
+      navigate(`/client/restaurant/${id}`);
+    } else {
+      navigate(`/login`);
+    }
   };
 
   const handleViewDish = (id: string) => {
-    navigate(`/client/food/${id}`);
+    if (user) {
+      navigate(`/client/food/${id}`);
+    } else {
+      navigate(`/login`);
+    }
   };
 
   return (

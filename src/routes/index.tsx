@@ -13,19 +13,17 @@ import FoodItemDetailPage from "@/components/admin/FoodItemDetailPage";
 import SpecialOffersPage from "@/components/admin/SpecialOffersPage";
 import DeliveryLayout from "@/components/delivery/DeliveryLayout";
 import DeliveryOrdersPage from "@/components/delivery/DeliveryOrdersPage";
-import LandingPage from "@/components/landing/LandingPage";
 import ProtectedRoute from "@/middleware/ProtectedRoute";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<AuthForm />} />
+      <Route path="login" element={<AuthForm />} />
 
       {/* Client routes */}
       <Route
-        path="/client"
+        path="client"
         element={
           <ProtectedRoute allowedRoles={["client"]}>
             <ClientLayout />
@@ -37,11 +35,12 @@ export default function AppRoutes() {
         <Route path="orders" element={<OrderHistoryPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="food/:id" element={<FoodDetailPage />} />
+        <Route path="restaurant/:id" element={<MenuPage />} />
       </Route>
 
       {/* Admin routes */}
       <Route
-        path="/admin"
+        path="admin"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminLayout />
@@ -56,7 +55,7 @@ export default function AppRoutes() {
 
       {/* Delivery routes */}
       <Route
-        path="/delivery"
+        path="delivery"
         element={
           <ProtectedRoute allowedRoles={["delivery"]}>
             <DeliveryLayout />

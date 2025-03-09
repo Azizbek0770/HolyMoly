@@ -6,6 +6,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { Toaster } from "@/components/ui/toaster";
+import LandingPage from "./components/landing/LandingPage";
 
 function App() {
   return (
@@ -22,6 +23,9 @@ function App() {
               {import.meta.env.VITE_TEMPO === "true" && (
                 <Route path="/tempobook/*" element={null} />
               )}
+
+              {/* Landing page route */}
+              <Route path="/" element={<LandingPage />} />
 
               {/* Include all app routes */}
               <Route path="/*" element={<AppRoutes />} />
