@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -94,6 +96,8 @@ import Pagination from "./Pagination";
 import SearchBar from "./SearchBar";
 
 export default function MenuPage() {
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,6 +161,21 @@ export default function MenuPage() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleAddToCart = (item: any) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+    });
+
+    toast({
+      title: "Added to cart",
+      description: `${item.name} has been added to your cart`,
+      duration: 2000,
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -333,7 +352,7 @@ export default function MenuPage() {
                   </CardContent>
                   <CardFooter className="p-4 pt-0 flex items-center justify-between">
                     <p className="font-semibold">${item.price.toFixed(2)}</p>
-                    <Button size="sm">
+                    <Button size="sm" onClick={() => handleAddToCart(item)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add to cart
                     </Button>
@@ -348,7 +367,10 @@ export default function MenuPage() {
                       >
                         Quick View
                       </Button>
-                      <Button className="w-32">
+                      <Button
+                        className="w-32"
+                        onClick={() => handleAddToCart(item)}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add to cart
                       </Button>

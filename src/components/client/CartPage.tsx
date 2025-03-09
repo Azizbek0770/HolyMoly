@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,57 +32,71 @@ type CartItem = {
 };
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      name: "Margherita Pizza",
-      price: 12.99,
-      quantity: 1,
-      image:
-        "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=300&q=75",
-    },
-    {
-      id: "2",
-      name: "Cheeseburger",
-      price: 9.99,
-      quantity: 2,
-      image:
-        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=75",
-    },
-  ]);
+  const {
+    items: cartItems,
+    updateQuantity,
+    removeFromCart,
+    subtotal,
+    clearCart,
+  } = useCart();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const updateQuantity = (id: string, newQuantity: number) => {
+  const handleRemoveItem = (id: string) => {
+    removeFromCart(id);
+    toast({
+      title: "Item removed",
+      description: "Item has been removed from your cart",
+      variant: "destructive",
+      duration: 2000,
+    });
+  };
+
+  const handleUpdateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item,
-      ),
-    );
+    updateQuantity(id, newQuantity);
   };
 
-  const removeItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
   const deliveryFee = 2.99;
   const tax = subtotal * 0.1; // 10% tax
   const total = subtotal + deliveryFee + tax;
+
+  const handlePayment = () => {
+    setIsProcessing(true);
+
+    // Simulate payment processing
+    setTimeout(() => {
+      toast({
+        title: "Payment successful!",
+        description: "Your order has been placed successfully.",
+        duration: 3000,
+      });
+
+      // Clear the cart
+      clearCart();
+
+      // Redirect to orders page
+      setTimeout(() => {
+        setIsProcessing(false);
+        navigate("/client/orders");
+      }, 1000);
+    }, 2000);
+  };
 
   return (
     <div className="space-y-6 pb-20">
       <h1 className="text-2xl font-bold">Your Cart</h1>
 
-      {cartItems.length === 0 ? (
+      {cartItems.length === 0 && !isProcessing ? (
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold">Your cart is empty</h2>
           <p className="text-muted-foreground mt-2">
             Add some delicious items to your cart
           </p>
-          <Button className="mt-4">Browse Menu</Button>
+          <Button className="mt-4" onClick={() => navigate("/client")}>
+            Browse Menu
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -107,7 +124,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-8 w-8 rounded-full"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
+                              handleUpdateQuantity(item.id, item.quantity - 1)
                             }
                           >
                             <Minus className="h-3 w-3" />
@@ -120,7 +137,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-8 w-8 rounded-full"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
+                              handleUpdateQuantity(item.id, item.quantity + 1)
                             }
                           >
                             <Plus className="h-3 w-3" />
@@ -130,7 +147,7 @@ export default function CartPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleRemoveItem(item.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -241,7 +258,13 @@ export default function CartPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Proceed to Payment</Button>
+                <Button
+                  className="w-full"
+                  onClick={handlePayment}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Proceed to Payment"}
+                </Button>
               </CardFooter>
             </Card>
           </div>

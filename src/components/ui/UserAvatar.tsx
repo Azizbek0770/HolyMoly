@@ -8,7 +8,7 @@ interface UserAvatarProps {
 
 export default function UserAvatar({
   className = "",
-  showName = true,
+  showName = false,
 }: UserAvatarProps) {
   const { user } = useAuth();
 

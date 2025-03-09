@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SearchBar from "./SearchBar";
+import LogoutButton from "@/components/ui/LogoutButton";
+import UserAvatar from "@/components/ui/UserAvatar";
 import {
   ShoppingCart,
   User,
@@ -10,13 +12,20 @@ import {
   Home,
   Clock,
   Settings,
+  Menu,
+  Heart,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 export default function ClientLayout() {
-  const [cartCount, setCartCount] = useState(2);
+  const { totalItems: cartCount } = useCart();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("");
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set active tab based on current path
@@ -24,16 +33,71 @@ export default function ClientLayout() {
     setActiveTab(path || "home");
   }, [location]);
 
+  const navItems = [
+    { name: "Home", path: "/client", icon: <Home className="h-5 w-5" /> },
+    {
+      name: "Orders",
+      path: "/client/orders",
+      icon: <Clock className="h-5 w-5" />,
+    },
+    {
+      name: "Favorites",
+      path: "/client/favorites",
+      icon: <Heart className="h-5 w-5" />,
+    },
+    {
+      name: "Profile",
+      path: "/client/profile",
+      icon: <User className="h-5 w-5" />,
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            {/* Mobile Menu Trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="p-6 border-b">
+                  <h1 className="text-xl font-bold">FoodDelivery</h1>
+                </div>
+                <div className="p-4 border-b">
+                  <UserAvatar showName={true} />
+                </div>
+                <nav className="flex-1 p-4 space-y-2">
+                  {navItems.map((item) => (
+                    <Button
+                      key={item.name}
+                      variant={
+                        activeTab === item.name.toLowerCase()
+                          ? "default"
+                          : "ghost"
+                      }
+                      className="w-full justify-start mb-1"
+                      onClick={() => navigate(item.path)}
+                    >
+                      {item.icon}
+                      <span className="ml-3">{item.name}</span>
+                    </Button>
+                  ))}
+                </nav>
+                <div className="p-4 border-t mt-auto">
+                  <LogoutButton />
+                </div>
+              </SheetContent>
+            </Sheet>
             <h1 className="text-xl font-bold">FoodDelivery</h1>
           </div>
 
-          <div className="flex-1 max-w-md mx-4">
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
             <SearchBar className="w-full" />
           </div>
 
@@ -42,7 +106,7 @@ export default function ClientLayout() {
               variant="outline"
               size="icon"
               className="relative"
-              onClick={() => (window.location.href = "/client/cart")}
+              onClick={() => navigate("/client/cart")}
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -51,13 +115,9 @@ export default function ClientLayout() {
                 </Badge>
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => (window.location.href = "/client/profile")}
-            >
-              <User className="h-5 w-5" />
-            </Button>
+            <div className="hidden md:block">
+              <UserAvatar />
+            </div>
           </div>
         </div>
       </header>
@@ -67,40 +127,27 @@ export default function ClientLayout() {
         <Outlet />
       </main>
 
+      {/* Mobile Search Bar */}
+      <div className="md:hidden px-4 py-2 border-t bg-background">
+        <SearchBar className="w-full" />
+      </div>
+
       {/* Mobile Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-10">
         <div className="grid grid-cols-4 h-16">
-          <Button
-            variant={activeTab === "home" ? "default" : "ghost"}
-            className="flex flex-col items-center justify-center rounded-none h-full"
-            onClick={() => (window.location.href = "/client")}
-          >
-            <Home className="h-5 w-5" />
-            <span className="text-xs mt-1">Home</span>
-          </Button>
-          <Button
-            variant={activeTab === "search" ? "default" : "ghost"}
-            className="flex flex-col items-center justify-center rounded-none h-full"
-          >
-            <Search className="h-5 w-5" />
-            <span className="text-xs mt-1">Search</span>
-          </Button>
-          <Button
-            variant={activeTab === "orders" ? "default" : "ghost"}
-            className="flex flex-col items-center justify-center rounded-none h-full"
-            onClick={() => (window.location.href = "/client/orders")}
-          >
-            <Clock className="h-5 w-5" />
-            <span className="text-xs mt-1">Orders</span>
-          </Button>
-          <Button
-            variant={activeTab === "profile" ? "default" : "ghost"}
-            className="flex flex-col items-center justify-center rounded-none h-full"
-            onClick={() => (window.location.href = "/client/profile")}
-          >
-            <User className="h-5 w-5" />
-            <span className="text-xs mt-1">Profile</span>
-          </Button>
+          {navItems.map((item, index) => (
+            <Button
+              key={index}
+              variant={
+                activeTab === item.name.toLowerCase() ? "default" : "ghost"
+              }
+              className="flex flex-col items-center justify-center rounded-none h-full"
+              onClick={() => navigate(item.path)}
+            >
+              {item.icon}
+              <span className="text-xs mt-1">{item.name}</span>
+            </Button>
+          ))}
         </div>
       </div>
     </div>

@@ -1,8 +1,11 @@
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function LogoutButton({ className, ...props }: ButtonProps) {
+export default function LogoutButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) {
   const { logout, isLoading } = useAuth();
 
   const handleLogout = async () => {
