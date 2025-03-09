@@ -312,7 +312,10 @@ export default function MenuPage() {
           <TabsContent key={category} value={category} className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedItems.map((item) => (
-                <Card key={item.id} className="overflow-hidden group relative">
+                <Card
+                  key={item.id}
+                  className="overflow-hidden group relative transition-all duration-300 hover:shadow-lg"
+                >
                   <div className="aspect-video w-full overflow-hidden">
                     <img
                       src={item.image}
@@ -354,7 +357,11 @@ export default function MenuPage() {
                   </CardContent>
                   <CardFooter className="p-4 pt-0 flex items-center justify-between">
                     <p className="font-semibold">${item.price.toFixed(2)}</p>
-                    <Button size="sm" onClick={() => handleAddToCart(item)}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddToCart(item)}
+                      className="transition-all hover:scale-105"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add to cart
                     </Button>
@@ -365,12 +372,12 @@ export default function MenuPage() {
                     <div className="space-y-2">
                       <Button
                         variant="outline"
-                        className="bg-white/20 text-white hover:bg-white/30 w-32"
+                        className="bg-white/20 text-white hover:bg-white/30 w-32 transition-all hover:scale-105"
                       >
                         Quick View
                       </Button>
                       <Button
-                        className="w-32"
+                        className="w-32 transition-all hover:scale-105"
                         onClick={() => handleAddToCart(item)}
                       >
                         <Plus className="h-4 w-4 mr-2" />

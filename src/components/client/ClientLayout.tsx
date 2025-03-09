@@ -14,7 +14,10 @@ import {
   Settings,
   Menu,
   Heart,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +28,7 @@ export default function ClientLayout() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("");
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -103,14 +107,26 @@ export default function ClientLayout() {
 
           <div className="flex items-center gap-4">
             <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="transition-transform hover:scale-110"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5 transition-all" />
+              ) : (
+                <Moon className="h-5 w-5 transition-all" />
+              )}
+            </Button>
+            <Button
               variant="outline"
               size="icon"
-              className="relative"
+              className="relative transition-transform hover:scale-110"
               onClick={() => navigate("/client/cart")}
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 animate-in zoom-in-50 duration-300">
                   {cartCount}
                 </Badge>
               )}

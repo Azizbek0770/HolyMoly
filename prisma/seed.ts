@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+// Note: This file runs in Node.js environment where bcrypt works
+// For browser compatibility, we use a different approach in the app itself
 import { hash } from "bcrypt";
 
 const prisma = new PrismaClient();

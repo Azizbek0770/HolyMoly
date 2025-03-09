@@ -68,6 +68,7 @@ export default function Pagination({
         size="sm"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        className="transition-all hover:scale-110"
       >
         <ChevronLeft className="h-4 w-4" />
         <span className="sr-only">Previous Page</span>
@@ -81,7 +82,7 @@ export default function Pagination({
               variant="outline"
               size="sm"
               disabled
-              className="cursor-default"
+              className="cursor-default transition-all"
             >
               ...
             </Button>
@@ -94,7 +95,7 @@ export default function Pagination({
             variant={currentPage === page ? "default" : "outline"}
             size="sm"
             onClick={() => onPageChange(page as number)}
-            className={currentPage === page ? "pointer-events-none" : ""}
+            className={`transition-all duration-200 ${currentPage === page ? "pointer-events-none scale-110" : "hover:scale-110"}`}
           >
             {page}
           </Button>
@@ -106,6 +107,7 @@ export default function Pagination({
         size="sm"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        className="transition-all hover:scale-110"
       >
         <ChevronRight className="h-4 w-4" />
         <span className="sr-only">Next Page</span>

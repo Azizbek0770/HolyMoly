@@ -47,7 +47,9 @@ export default function SearchBar({
         return;
       }
 
-      const mockResults: SearchResult[] = [
+      // More comprehensive mock data
+      const allMockResults: SearchResult[] = [
+        // Pizza items
         {
           id: "1",
           name: "Margherita Pizza",
@@ -66,29 +68,121 @@ export default function SearchBar({
         },
         {
           id: "3",
-          name: "Pizza Palace",
-          category: "Restaurant",
-          type: "restaurant",
+          name: "Vegetarian Pizza",
+          category: "Pizza",
+          image:
+            "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=100&q=75",
+          type: "food",
         },
+        // Burger items
         {
           id: "4",
-          name: "Pizza",
-          category: "Category",
-          type: "category",
-        },
-        {
-          id: "5",
           name: "Cheeseburger",
           category: "Burgers",
           image:
             "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&q=75",
           type: "food",
         },
-      ].filter(
-        (item) =>
-          item.name.toLowerCase().includes(query.toLowerCase()) ||
-          item.category.toLowerCase().includes(query.toLowerCase()),
-      );
+        {
+          id: "5",
+          name: "Bacon Burger",
+          category: "Burgers",
+          image:
+            "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=100&q=75",
+          type: "food",
+        },
+        // Sushi items
+        {
+          id: "6",
+          name: "California Roll",
+          category: "Sushi",
+          image:
+            "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=75",
+          type: "food",
+        },
+        {
+          id: "7",
+          name: "Dragon Roll",
+          category: "Sushi",
+          image:
+            "https://images.unsplash.com/photo-1617196034183-421b4917c92d?w=100&q=75",
+          type: "food",
+        },
+        // Salad items
+        {
+          id: "8",
+          name: "Caesar Salad",
+          category: "Salads",
+          image:
+            "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=100&q=75",
+          type: "food",
+        },
+        // Restaurants
+        {
+          id: "9",
+          name: "Pizza Palace",
+          category: "Restaurant",
+          type: "restaurant",
+        },
+        {
+          id: "10",
+          name: "Burger Joint",
+          category: "Restaurant",
+          type: "restaurant",
+        },
+        {
+          id: "11",
+          name: "Sushi Express",
+          category: "Restaurant",
+          type: "restaurant",
+        },
+        // Categories
+        {
+          id: "12",
+          name: "Pizza",
+          category: "Category",
+          type: "category",
+        },
+        {
+          id: "13",
+          name: "Burgers",
+          category: "Category",
+          type: "category",
+        },
+        {
+          id: "14",
+          name: "Sushi",
+          category: "Category",
+          type: "category",
+        },
+        {
+          id: "15",
+          name: "Salads",
+          category: "Category",
+          type: "category",
+        },
+      ];
+
+      // More sophisticated filtering
+      const lowerQuery = query.toLowerCase();
+      const mockResults = allMockResults.filter((item) => {
+        const nameMatch = item.name.toLowerCase().includes(lowerQuery);
+        const categoryMatch = item.category.toLowerCase().includes(lowerQuery);
+
+        // For food items, also check if the category name matches the query
+        // This helps when searching for "pizza" to find all pizza items
+        const categoryTypeMatch =
+          item.type === "food" &&
+          allMockResults
+            .filter((r) => r.type === "category")
+            .some(
+              (cat) =>
+                cat.name.toLowerCase().includes(lowerQuery) &&
+                cat.name.toLowerCase() === item.category.toLowerCase(),
+            );
+
+        return nameMatch || categoryMatch || categoryTypeMatch;
+      });
 
       setResults(mockResults);
       setIsLoading(false);
@@ -128,7 +222,7 @@ export default function SearchBar({
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={placeholder}
-          className="pl-8 pr-8"
+          className="pl-8 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
@@ -138,7 +232,7 @@ export default function SearchBar({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-0 top-0 h-full rounded-l-none"
+            className="absolute right-0 top-0 h-full rounded-l-none transition-all hover:bg-muted"
             onClick={clearSearch}
           >
             <X className="h-4 w-4" />
@@ -151,13 +245,22 @@ export default function SearchBar({
           placeholder="Search for food, restaurants, or categories..."
           value={query}
           onValueChange={setQuery}
+          className="transition-all duration-200"
         />
-        <CommandList>
+        <CommandList className="animate-in fade-in-50 duration-200">
           {isLoading ? (
-            <div className="py-6 text-center text-sm">Loading results...</div>
+            <div className="py-6 text-center text-sm">
+              <div
+                className="inline-block animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"
+                aria-hidden="true"
+              ></div>
+              Loading results...
+            </div>
           ) : (
             <>
-              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandEmpty className="animate-in fade-in-50 duration-200">
+                No results found.
+              </CommandEmpty>
               <CommandGroup heading="Foods">
                 {results
                   .filter((result) => result.type === "food")
@@ -168,10 +271,10 @@ export default function SearchBar({
                         setQuery(result.name);
                         handleSearch(result.name);
                       }}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 transition-all duration-200 hover:scale-[1.02]"
                     >
                       {result.image && (
-                        <div className="h-8 w-8 overflow-hidden rounded">
+                        <div className="h-8 w-8 overflow-hidden rounded transition-all duration-200 group-hover:scale-105">
                           <img
                             src={result.image}
                             alt={result.name}
@@ -199,6 +302,7 @@ export default function SearchBar({
                         setQuery(result.name);
                         handleSearch(result.name);
                       }}
+                      className="transition-all duration-200 hover:scale-[1.02]"
                     >
                       {result.name}
                     </CommandItem>
@@ -215,6 +319,7 @@ export default function SearchBar({
                         setQuery(result.name);
                         handleSearch(result.name);
                       }}
+                      className="transition-all duration-200 hover:scale-[1.02]"
                     >
                       {result.name}
                     </CommandItem>

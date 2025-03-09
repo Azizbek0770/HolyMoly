@@ -11,87 +11,155 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  name              String
-  role              String    // "client", "admin", or "delivery"
-  phone             String?   
-  dateOfBirth       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  addresses         Address[]
-  paymentMethods    PaymentMethod[]
-  orders            Order[]   @relation("UserOrders")
-  deliveries        Order[]   @relation("DeliveryPersonOrders")
-  loyaltyPoints     Int       @default(0)
-  membershipTier    String    @default("Bronze") // Bronze, Silver, Gold, Platinum
-  notificationPrefs Json?     // Store notification preferences as JSON
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  role          String    @default("client") // "client", "admin", "delivery"
+  phone         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  password      String?
+  loyaltyPoints Int       @default(0) @map("loyalty_points")
+  membershipTier String?   @map("membership_tier")
+  addresses     Address[]
+  paymentMethods PaymentMethod[]
+  orders        Order[]
+  reviews       Review[]
+  favorites     FoodItem[] @relation("UserFavorites")
+  deliveries    Order[]   @relation("DeliveryPerson")
+
+  @@map("users")
 }
 
 model Address {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String   // e.g., "Home", "Work"
-  address     String
-  city        String
-  state       String
-  zip         String
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String   // e.g., "Home", "Work"
+  address   String
+  city      String
+  state     String
+  zip       String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
+  @@map("addresses")
 }
 
 model PaymentMethod {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // e.g., "Visa", "Mastercard"
-  last4       String
-  expiry      String
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   // e.g., "Visa", "Mastercard"
+  last4     String
+  expiry    String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
+  @@map("payment_methods")
 }
 
 model FoodItem {
-  id          String       @id @default(uuid())
-  name        String
-  description String
-  price       Float
-  category    String
-  image       String
-  available   Boolean      @default(true)
-  rating      Float        @default(0)
-  preparationTime Int      @default(15) // in minutes
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  orderItems  OrderItem[]
+  id              String    @id @default(uuid())
+  name            String
+  description     String
+  price           Float
+  category        String
+  image           String
+  available       Boolean   @default(true)
+  rating          Float     @default(0)
+  preparationTime Int       @default(15) @map("preparation_time")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  orderItems      OrderItem[]
+  favoritedBy     User[]    @relation("UserFavorites")
+  reviews         Review[]
+
+  @@map("food_items")
 }
 
 model Order {
-  id                String       @id @default(uuid())
-  userId            String
-  user              User         @relation("UserOrders", fields: [userId], references: [id])
-  status            String       // "pending", "accepted", "picked", "delivered", "cancelled"
-  total             Float
-  deliveryAddress   String
-  deliveryTime      DateTime?
-  deliveryPersonId  String?
-  deliveryPerson    User?        @relation("DeliveryPersonOrders", fields: [deliveryPersonId], references: [id])
-  items             OrderItem[]
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id               String         @id @default(uuid())
+  userId           String         @map("user_id")
+  status           String         // "pending", "processing", "in-transit", "delivered", "cancelled"
+  total            Float
+  subtotal         Float
+  tax              Float
+  deliveryFee      Float          @map("delivery_fee")
+  addressId        String?        @map("address_id")
+  paymentMethodId  String?        @map("payment_method_id")
+  deliveryPersonId String?        @map("delivery_person_id")
+  deliveryNotes    String?        @map("delivery_notes")
+  estimatedDelivery DateTime?     @map("estimated_delivery")
+  actualDelivery   DateTime?      @map("actual_delivery")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  user             User           @relation(fields: [userId], references: [id])
+  address          Address?       @relation(fields: [addressId], references: [id])
+  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  deliveryPerson   User?          @relation("DeliveryPerson", fields: [deliveryPersonId], references: [id])
+  items            OrderItem[]
+  statusUpdates    OrderStatus[]
+
+  @@map("orders")
 }
 
 model OrderItem {
-  id          String    @id @default(uuid())
-  orderId     String
-  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  foodItemId  String
-  foodItem    FoodItem  @relation(fields: [foodItemId], references: [id])
-  quantity    Int
-  price       Float
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  orderId    String   @map("order_id")
+  foodItemId String   @map("food_item_id")
+  quantity   Int
+  price      Float
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderStatus {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  status    String
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  foodItemId String   @map("food_item_id")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Promotion {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  description String
+  discount    Float
+  type        String   // "percentage", "fixed"
+  minOrder    Float?   @map("min_order")
+  maxDiscount Float?   @map("max_discount")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("promotions")
 }

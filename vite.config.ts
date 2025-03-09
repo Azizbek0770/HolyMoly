@@ -12,13 +12,23 @@ if (process.env.TEMPO === "true") {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
+  base:
+    process.env.NODE_ENV === "development"
+      ? "/"
+      : process.env.VITE_BASE_PATH || "/",
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
+    exclude: [
+      "bcrypt",
+      "@mapbox/node-pre-gyp",
+      "mock-aws-s3",
+      "aws-sdk",
+      "nock",
+    ],
   },
   plugins: [
     react({
-      plugins: conditionalPlugins,
+      plugins: [...conditionalPlugins],
     }),
     tempo(),
   ],
@@ -30,6 +40,17 @@ export default defineConfig({
   },
   server: {
     // @ts-ignore
-    allowedHosts: true,
-  }
+    allowedHosts: process.env.TEMPO === "true" ? true : undefined,
+  },
+  build: {
+    commonjsOptions: {
+      exclude: [
+        "bcrypt",
+        "@mapbox/node-pre-gyp",
+        "mock-aws-s3",
+        "aws-sdk",
+        "nock",
+      ],
+    },
+  },
 });

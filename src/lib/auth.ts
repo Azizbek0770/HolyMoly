@@ -1,4 +1,5 @@
 import { supabase, mockAuthEnabled } from "./supabase";
+import { hash, compare } from "./bcrypt-browser";
 
 export type UserRole = "client" | "admin" | "delivery";
 
