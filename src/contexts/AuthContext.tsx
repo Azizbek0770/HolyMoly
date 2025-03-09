@@ -5,28 +5,40 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  User,
-  UserRole,
-  signIn,
-  signUp,
-  signOut,
-  getCurrentUser,
-} from "@/lib/auth";
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  phone?: string;
+  loyaltyPoints?: number;
+  membershipTier?: string;
+  bio?: string;
+  birthdate?: string;
+  avatar?: string;
+  createdAt?: string;
+}
+
+type UserRole = "admin" | "client" | "delivery";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    role: UserRole,
+  ) => Promise<{ success: boolean; user: User | null }>;
   register: (
     email: string,
     password: string,
     name: string,
     role: UserRole,
-  ) => Promise<void>;
-  logout: () => Promise<void>;
+  ) => Promise<{ success: boolean }>;
+  logout: () => Promise<{ success: boolean }>;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     async function loadUser() {
@@ -58,23 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         setError(error);
         setIsLoading(false);
-        return;
+        return { success: false, user: null };
       }
 
       if (user) {
         setUser(user);
-
-        // Redirect based on role
-        if (user.role === "admin") {
-          navigate("/admin");
-        } else if (user.role === "delivery") {
-          navigate("/delivery");
-        } else {
-          navigate("/client");
-        }
+        return { success: true, user };
       }
+
+      return { success: false, user: null };
     } catch (err: any) {
       setError(err.message || "An error occurred during login");
+      return { success: false, user: null };
     } finally {
       setIsLoading(false);
     }
@@ -94,15 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         setError(error);
-        return;
+        return { success: false };
       }
 
       if (success) {
         // After successful registration, log the user in
-        await login(email, password, role);
+        const loginResult = await login(email, password, role);
+        return { success: loginResult.success };
       }
+
+      return { success: false };
     } catch (err: any) {
       setError(err.message || "An error occurred during registration");
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -117,21 +127,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         setError(error);
-        return;
+        return { success: false };
       }
 
       setUser(null);
-      navigate("/");
+      return { success: true };
     } catch (err: any) {
       setError(err.message || "An error occurred during logout");
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Function to update user data in context
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      setUser({ ...user, ...userData });
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, error, login, register, logout }}
+      value={{ user, isLoading, error, login, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>
@@ -144,4 +162,74 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+// Mock authentication functions
+async function signIn(email: string, password: string, role: UserRole) {
+  // Simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // Mock users
+  const users = {
+    admin: {
+      id: "admin-123",
+      email: "admin@example.com",
+      name: "Admin User",
+      role: "admin",
+      createdAt: new Date().toISOString(),
+    },
+    client: {
+      id: "client-123",
+      email: "client@example.com",
+      name: "Client User",
+      role: "client",
+      phone: "(555) 123-4567",
+      loyaltyPoints: 450,
+      membershipTier: "Silver",
+      createdAt: new Date().toISOString(),
+    },
+    delivery: {
+      id: "delivery-123",
+      email: "delivery@example.com",
+      name: "Delivery User",
+      role: "delivery",
+      phone: "(555) 987-6543",
+      createdAt: new Date().toISOString(),
+    },
+  };
+
+  // Check if email and role match
+  if (email === `${role}@example.com` && password === role) {
+    return { user: users[role], error: null };
+  }
+
+  return { user: null, error: "Invalid credentials" };
+}
+
+async function signUp(
+  email: string,
+  password: string,
+  name: string,
+  role: UserRole,
+) {
+  // Simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // In a real app, you would create a new user in the database
+  return { success: true, error: null };
+}
+
+async function signOut() {
+  // Simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  return { error: null };
+}
+
+async function getCurrentUser() {
+  // Simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // In a real app, you would check for a stored token and fetch the user
+  return null;
 }

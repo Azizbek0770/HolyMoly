@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +26,7 @@ import { UserRole } from "@/lib/auth";
 
 export default function AuthForm() {
   const { login, register, isLoading, error } = useAuth();
+  const navigate = useNavigate();
   const [isLoginView, setIsLoginView] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
@@ -52,17 +54,34 @@ export default function AuthForm() {
     e.preventDefault();
 
     if (isLoginView) {
-      await login(formData.email, formData.password, formData.role);
+      const result = await login(
+        formData.email,
+        formData.password,
+        formData.role,
+      );
+      if (result.success && result.user) {
+        // Redirect based on role
+        if (result.user.role === "admin") {
+          navigate("/admin");
+        } else if (result.user.role === "delivery") {
+          navigate("/delivery");
+        } else {
+          navigate("/client");
+        }
+      }
     } else {
       if (formData.password !== formData.confirmPassword) {
         return; // Handle password mismatch error
       }
-      await register(
+      const result = await register(
         formData.email,
         formData.password,
         formData.name,
         formData.role,
       );
+      if (result.success) {
+        // Login will handle the redirect
+      }
     }
   };
 

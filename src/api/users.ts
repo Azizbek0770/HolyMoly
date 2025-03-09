@@ -103,17 +103,26 @@ export async function updateUserProfile({
   name,
   phone,
   email,
+  bio,
+  birthdate,
+  avatar,
 }: {
   userId: string;
   name?: string;
   phone?: string;
   email?: string;
+  bio?: string;
+  birthdate?: string;
+  avatar?: string;
 }) {
   try {
     const updateData: any = {};
 
     if (name) updateData.name = name;
     if (phone) updateData.phone = phone;
+    if (bio) updateData.bio = bio;
+    if (birthdate) updateData.birthdate = birthdate;
+    if (avatar) updateData.avatar = avatar;
     if (email) {
       // Check if email is already in use by another user
       const existingUser = await prisma.user.findFirst({

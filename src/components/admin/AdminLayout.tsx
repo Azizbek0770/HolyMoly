@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function AdminLayout() {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -78,8 +78,10 @@ export default function AdminLayout() {
   ];
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+    const result = await logout();
+    if (result.success) {
+      navigate("/");
+    }
   };
 
   return (

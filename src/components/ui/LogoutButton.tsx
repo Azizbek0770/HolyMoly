@@ -1,27 +1,57 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface LogoutButtonProps extends React.ComponentProps<typeof Button> {
+  redirectTo?: string;
+  showIcon?: boolean;
+  fullWidth?: boolean;
+}
+
 export default function LogoutButton({
+  redirectTo = "/",
+  showIcon = true,
+  fullWidth = false,
   className,
+  variant = "ghost",
+  size = "default",
   ...props
-}: React.ComponentProps<typeof Button>) {
-  const { logout, isLoading } = useAuth();
+}: LogoutButtonProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      setIsLoggingOut(true);
+      const result = await logout();
+      if (result.success) {
+        navigate(redirectTo);
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
     <Button
-      variant="ghost"
-      className={`w-full justify-start text-destructive ${className}`}
+      variant={variant}
+      size={size}
+      className={`${fullWidth ? "w-full justify-start" : ""} ${className || ""}`}
       onClick={handleLogout}
-      disabled={isLoading}
+      disabled={isLoggingOut}
       {...props}
     >
-      <LogOut className="h-5 w-5 mr-2" />
-      {isLoading ? "Logging out..." : "Logout"}
+      {isLoggingOut ? (
+        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      ) : (
+        showIcon && <LogOut className="h-4 w-4 mr-2" />
+      )}
+      {isLoggingOut ? "Logging out..." : "Sign Out"}
     </Button>
   );
 }

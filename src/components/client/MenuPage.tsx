@@ -1,27 +1,29 @@
 import { useState, useEffect } from "react";
-import { useCart } from "@/contexts/CartContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Star, Plus, Filter, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Clock,
+  DollarSign,
+  Plus,
+  Heart,
+  Eye,
+} from "lucide-react";
 
-type FoodItem = {
+interface FoodItem {
   id: string;
   name: string;
   description: string;
@@ -30,99 +32,342 @@ type FoodItem = {
   category: string;
   rating: number;
   preparationTime: number;
-};
+}
 
-const categories = [
-  "All",
-  "Popular",
-  "Pizza",
-  "Burgers",
-  "Sushi",
-  "Salads",
-  "Desserts",
-  "Drinks",
-];
-
-const mockFoodItems: FoodItem[] = [
-  {
-    id: "1",
-    name: "Margherita Pizza",
-    description: "Classic pizza with tomato sauce, mozzarella, and basil",
-    price: 12.99,
-    image:
-      "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&q=75",
-    category: "Pizza",
-    rating: 4.5,
-    preparationTime: 20,
-  },
-  {
-    id: "2",
-    name: "Cheeseburger",
-    description:
-      "Juicy beef patty with cheese, lettuce, tomato, and special sauce",
-    price: 9.99,
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=75",
-    category: "Burgers",
-    rating: 4.3,
-    preparationTime: 15,
-  },
-  {
-    id: "3",
-    name: "California Roll",
-    description: "Crab, avocado, and cucumber wrapped in seaweed and rice",
-    price: 14.99,
-    image:
-      "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=75",
-    category: "Sushi",
-    rating: 4.7,
-    preparationTime: 25,
-  },
-  {
-    id: "4",
-    name: "Caesar Salad",
-    description:
-      "Romaine lettuce, croutons, parmesan cheese with Caesar dressing",
-    price: 8.99,
-    image:
-      "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=600&q=75",
-    category: "Salads",
-    rating: 4.2,
-    preparationTime: 10,
-  },
-];
-
-import Pagination from "./Pagination";
-import SearchBar from "./SearchBar";
+interface Category {
+  name: string;
+  count: number;
+}
 
 export default function MenuPage() {
-  const { addToCart } = useCart();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState("recommended");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
-  const [showFilters, setShowFilters] = useState(false);
-  const itemsPerPage = 6;
+  const { user } = useAuth();
+  const { addToCart } = useCart();
 
-  // Filter items based on category, search query, and price range
-  const filteredItems = mockFoodItems.filter((item) => {
+  // State for food items and loading
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+
+  // State for filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
+  const [sortBy, setSortBy] = useState("rating");
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
+
+  // Mock data for food items
+  const mockFoodItems: FoodItem[] = [
+    {
+      id: "1",
+      name: "Margherita Pizza",
+      description:
+        "Classic pizza with tomato sauce, fresh mozzarella, basil, and extra virgin olive oil.",
+      price: 12.99,
+      image:
+        "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&q=75",
+      category: "Pizza",
+      rating: 4.7,
+      preparationTime: 20,
+    },
+    {
+      id: "2",
+      name: "Pepperoni Pizza",
+      description:
+        "Classic pizza with tomato sauce, mozzarella, and pepperoni.",
+      price: 14.99,
+      image:
+        "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=600&q=75",
+      category: "Pizza",
+      rating: 4.6,
+      preparationTime: 20,
+    },
+    {
+      id: "3",
+      name: "Cheeseburger",
+      description:
+        "Juicy beef patty with cheese, lettuce, tomato, and special sauce.",
+      price: 9.99,
+      image:
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=75",
+      category: "Burgers",
+      rating: 4.3,
+      preparationTime: 15,
+    },
+    {
+      id: "4",
+      name: "Bacon Burger",
+      description:
+        "Juicy beef patty with bacon, cheese, lettuce, and special sauce.",
+      price: 11.99,
+      image:
+        "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=600&q=75",
+      category: "Burgers",
+      rating: 4.6,
+      preparationTime: 15,
+    },
+    {
+      id: "5",
+      name: "California Roll",
+      description: "Crab, avocado, and cucumber wrapped in seaweed and rice.",
+      price: 14.99,
+      image:
+        "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=75",
+      category: "Sushi",
+      rating: 4.7,
+      preparationTime: 25,
+    },
+    {
+      id: "6",
+      name: "Dragon Roll",
+      description: "Eel, crab, and cucumber topped with avocado.",
+      price: 16.99,
+      image:
+        "https://images.unsplash.com/photo-1617196034183-421b4917c92d?w=600&q=75",
+      category: "Sushi",
+      rating: 4.8,
+      preparationTime: 25,
+    },
+    {
+      id: "7",
+      name: "Caesar Salad",
+      description:
+        "Romaine lettuce, croutons, parmesan cheese with Caesar dressing.",
+      price: 8.99,
+      image:
+        "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=600&q=75",
+      category: "Salads",
+      rating: 4.2,
+      preparationTime: 10,
+    },
+    {
+      id: "8",
+      name: "Greek Salad",
+      description:
+        "Tomatoes, cucumbers, olives, feta cheese with olive oil dressing.",
+      price: 9.99,
+      image:
+        "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=75",
+      category: "Salads",
+      rating: 4.4,
+      preparationTime: 10,
+    },
+  ];
+
+  // Mock categories
+  const mockCategories: Category[] = [
+    { name: "All", count: mockFoodItems.length },
+    {
+      name: "Popular",
+      count: mockFoodItems.filter((item) => item.rating >= 4.5).length,
+    },
+    {
+      name: "Pizza",
+      count: mockFoodItems.filter((item) => item.category === "Pizza").length,
+    },
+    {
+      name: "Burgers",
+      count: mockFoodItems.filter((item) => item.category === "Burgers").length,
+    },
+    {
+      name: "Sushi",
+      count: mockFoodItems.filter((item) => item.category === "Sushi").length,
+    },
+    {
+      name: "Salads",
+      count: mockFoodItems.filter((item) => item.category === "Salads").length,
+    },
+  ];
+
+  // Parse query parameters on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoryParam = params.get("category");
+    const searchParam = params.get("search");
+
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+
+    // Load categories and food items
+    fetchData();
+
+    // Load favorites if user is logged in
+    if (user) {
+      fetchFavorites();
+    }
+  }, [location.search, user]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Set categories and food items
+      setCategories(mockCategories);
+      setFoodItems(mockFoodItems);
+      setTotalPages(Math.ceil(mockFoodItems.length / 6));
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load menu items",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+
+    setIsLoadingFavorites(true);
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Mock favorites
+      setFavorites(["1", "5"]);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    } finally {
+      setIsLoadingFavorites(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
+
+  const handlePriceRangeChange = (value: number[]) => {
+    setPriceRange([value[0], value[1]]);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  const handleAddToCart = async (item: FoodItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    setAddingToCart(item.id);
+
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      addToCart({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        quantity: 1,
+      });
+
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
+  const handleToggleFavorite = async (itemId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to save favorites",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      if (favorites.includes(itemId)) {
+        setFavorites(favorites.filter((id) => id !== itemId));
+        toast({
+          title: "Removed from favorites",
+          description: "Item removed from your favorites",
+          duration: 2000,
+        });
+      } else {
+        setFavorites([...favorites, itemId]);
+        toast({
+          title: "Added to favorites",
+          description: "Item added to your favorites",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDetails = (itemId: string) => {
+    navigate(`/client/food/${itemId}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Filter and sort food items
+  const filteredItems = foodItems.filter((item) => {
     // Category filter
     const categoryMatch =
-      activeCategory === "All"
+      selectedCategory === "All"
         ? true
-        : activeCategory === "Popular"
+        : selectedCategory === "Popular"
           ? item.rating >= 4.5
-          : item.category === activeCategory;
+          : item.category === selectedCategory;
 
     // Search filter
     const searchMatch =
       searchQuery === ""
         ? true
         : item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase());
+          item.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Price filter
     const priceMatch =
@@ -143,254 +388,338 @@ export default function MenuPage() {
       case "time":
         return a.preparationTime - b.preparationTime;
       default: // recommended
-        return b.rating - a.rating; // Default sort by rating
+        return b.rating - a.rating;
     }
   });
 
   // Paginate items
-  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
   const paginatedItems = sortedItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+    (currentPage - 1) * 6,
+    currentPage * 6,
   );
 
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeCategory, searchQuery, sortBy, priceRange]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // Reset category to "All" when searching
-    setActiveCategory("All");
-  };
-
-  const handleAddToCart = (item: any) => {
-    addToCart({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image,
-    });
-
-    toast({
-      title: "Added to cart",
-      description: `${item.name} has been added to your cart`,
-      duration: 2000,
-    });
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Scroll to top of results
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Menu</h1>
-          <p className="text-muted-foreground">
-            Discover our delicious offerings
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {showFilters ? "Hide Filters" : "Show Filters"}
-          </Button>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recommended">Recommended</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
-              <SelectItem value="rating">Highest Rated</SelectItem>
-              <SelectItem value="time">Fastest Delivery</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Search bar for mobile */}
-      <div className="md:hidden mb-4">
-        <SearchBar onSearch={handleSearch} />
-      </div>
-
-      {/* Advanced filters */}
-      {showFilters && (
-        <div className="bg-muted/30 rounded-lg p-4 mb-4">
-          <h3 className="font-medium mb-3">Price Range</h3>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">${priceRange[0]}</span>
-                <span className="text-sm">${priceRange[1]}</span>
-              </div>
-              <div className="relative">
-                <input
-                  type="range"
-                  min="0"
-                  max="50"
-                  step="5"
-                  value={priceRange[1]}
-                  onChange={(e) =>
-                    setPriceRange([priceRange[0], parseInt(e.target.value)])
-                  }
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+    <div className="container mx-auto px-4 py-8">
+      {/* Search and Filter Bar */}
+      <div className="mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex-1 flex">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Search for food..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
+            <Button type="submit" className="ml-2">
+              Search
+            </Button>
+          </form>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+            <Tabs value={sortBy} onValueChange={handleSortChange}>
+              <TabsList>
+                <TabsTrigger value="rating" className="flex items-center gap-1">
+                  <Star className="h-4 w-4" /> Rating
+                </TabsTrigger>
+                <TabsTrigger
+                  value="price-low"
+                  className="flex items-center gap-1"
+                >
+                  <DollarSign className="h-4 w-4" /> Price: Low to High
+                </TabsTrigger>
+                <TabsTrigger
+                  value="price-high"
+                  className="flex items-center gap-1"
+                >
+                  <DollarSign className="h-4 w-4" /> Price: High to Low
+                </TabsTrigger>
+                <TabsTrigger value="time" className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" /> Prep Time
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Expanded Filters */}
+        {showFilters && (
+          <Card className="mt-4">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h3 className="font-medium mb-2">Categories</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <Badge
+                        key={category.name}
+                        variant={
+                          selectedCategory === category.name
+                            ? "default"
+                            : "outline"
+                        }
+                        className="cursor-pointer"
+                        onClick={() => handleCategoryChange(category.name)}
+                      >
+                        {category.name}{" "}
+                        {category.count > 0 && `(${category.count})`}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Price Range</h3>
+                  <div className="px-2">
+                    <Slider
+                      defaultValue={[priceRange[0], priceRange[1]]}
+                      max={50}
+                      step={1}
+                      value={[priceRange[0], priceRange[1]]}
+                      onValueChange={handlePriceRangeChange}
+                      className="mb-2"
+                    />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>${priceRange[0]}</span>
+                      <span>${priceRange[1]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("All");
+                        setPriceRange([0, 50]);
+                        setSortBy("rating");
+                      }}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Category Pills for Mobile */}
+      <div className="md:hidden overflow-x-auto pb-4 mb-4">
+        <div className="flex space-x-2 w-max">
+          {categories.map((category) => (
+            <Badge
+              key={category.name}
+              variant={
+                selectedCategory === category.name ? "default" : "outline"
+              }
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => handleCategoryChange(category.name)}
+            >
+              {category.name}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Food Items Grid */}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : paginatedItems.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedItems.map((item) => (
+            <Card
+              key={item.id}
+              className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative h-full flex flex-col"
+              onMouseEnter={() => setHoveredItem(item.id)}
+              onMouseLeave={() => setHoveredItem(null)}
+              onClick={() => handleViewDetails(item.id)}
+            >
+              <div className="relative h-48 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute top-2 right-2 bg-white/90 rounded-full px-2 py-1 text-sm font-medium flex items-center">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                  {item.rating}
+                </div>
+                <Badge
+                  variant="outline"
+                  className="absolute top-2 left-2 bg-white/90 text-foreground"
+                >
+                  {item.category}
+                </Badge>
+
+                {/* Quick action overlay */}
+                {hoveredItem === item.id && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 animate-fadeIn">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={(e) => handleAddToCart(item, e)}
+                      disabled={addingToCart === item.id}
+                    >
+                      {addingToCart === item.id ? (
+                        <div className="h-4 w-4 mr-1 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-1" />
+                      )}
+                      Add to Cart
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full bg-white/80 hover:bg-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(item.id);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Quick View
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="p-4 flex-1 flex flex-col">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-1 line-clamp-1">
+                    {item.name}
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2 line-clamp-2">
+                    {item.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <span className="font-bold text-lg">
+                    ${item.price.toFixed(2)}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full hover:bg-muted"
+                      onClick={(e) => handleToggleFavorite(item.id, e)}
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${favorites.includes(item.id) ? "fill-red-500 text-red-500" : ""}`}
+                      />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full hover:bg-muted"
+                      onClick={(e) => handleAddToCart(item, e)}
+                      disabled={addingToCart === item.id}
+                    >
+                      {addingToCart === item.id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      ) : (
+                        <Plus className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h3 className="text-xl font-medium mb-2">No items found</h3>
+          <p className="text-muted-foreground mb-4">
+            Try adjusting your search or filters to find what you're looking
+            for.
+          </p>
+          <Button
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCategory("All");
+              setPriceRange([0, 50]);
+              setSortBy("rating");
+            }}
+          >
+            Reset Filters
+          </Button>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Featured Event Banner */}
-      <div className="relative rounded-lg overflow-hidden my-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/40 z-10"></div>
-        <img
-          src="https://images.unsplash.com/photo-1555244162-803834f70033?w=1200&q=80"
-          alt="Special Event"
-          className="w-full h-48 object-cover"
-        />
-        <div className="absolute inset-0 z-20 flex flex-col justify-center p-6">
-          <Badge className="w-fit mb-2">Limited Time</Badge>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Summer Food Festival
-          </h2>
-          <p className="text-white/90 mb-4 max-w-md">
-            Join us for special dishes and exclusive discounts from June 15-30
-          </p>
-          <Button className="w-fit">View Special Menu</Button>
-        </div>
-      </div>
-
-      <Tabs defaultValue="All" className="w-full">
-        <div className="overflow-x-auto pb-2">
-          <TabsList className="inline-flex h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground w-auto">
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category}
-                value={category}
-                onClick={() => setActiveCategory(category)}
-                className="rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap"
-              >
-                {category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        {/* Pagination controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 mb-2">
-          <p className="text-sm text-muted-foreground mb-2 sm:mb-0">
-            Showing{" "}
-            <span className="font-medium">
-              {(currentPage - 1) * itemsPerPage + 1}-
-              {Math.min(currentPage * itemsPerPage, filteredItems.length)}
-            </span>{" "}
-            of <span className="font-medium">{filteredItems.length}</span> items
-          </p>
-
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
-
-        {categories.map((category) => (
-          <TabsContent key={category} value={category} className="mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedItems.map((item) => (
-                <Card
-                  key={item.id}
-                  className="overflow-hidden group relative transition-all duration-300 hover:shadow-lg"
-                >
-                  <div className="aspect-video w-full overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    {item.rating >= 4.5 && (
-                      <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-md flex items-center">
-                        <Star className="h-3 w-3 fill-current mr-1" />
-                        Popular
-                      </div>
-                    )}
-                  </div>
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{item.name}</CardTitle>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <Star className="h-3 w-3 fill-current" />
-                        {item.rating}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 pb-2">
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {item.description}
-                    </p>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-sm flex items-center">
-                        <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                        {item.preparationTime} min
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {item.category}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                    <p className="font-semibold">${item.price.toFixed(2)}</p>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddToCart(item)}
-                      className="transition-all hover:scale-105"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to cart
-                    </Button>
-                  </CardFooter>
-
-                  {/* Quick view overlay on hover */}
-                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    <div className="space-y-2">
-                      <Button
-                        variant="outline"
-                        className="bg-white/20 text-white hover:bg-white/30 w-32 transition-all hover:scale-105"
-                      >
-                        Quick View
-                      </Button>
-                      <Button
-                        className="w-32 transition-all hover:scale-105"
-                        onClick={() => handleAddToCart(item)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to cart
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
