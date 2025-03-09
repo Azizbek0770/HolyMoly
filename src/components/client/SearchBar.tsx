@@ -101,9 +101,9 @@ export default function SearchBar({
     }
   }, [query, open]);
 
-  const handleSearch = () => {
+  const handleSearch = (selectedQuery = query) => {
     if (onSearch) {
-      onSearch(query);
+      onSearch(selectedQuery);
     }
     setOpen(false);
   };
@@ -166,7 +166,7 @@ export default function SearchBar({
                       key={result.id}
                       onSelect={() => {
                         setQuery(result.name);
-                        handleSearch();
+                        handleSearch(result.name);
                       }}
                       className="flex items-center gap-2"
                     >
@@ -197,7 +197,7 @@ export default function SearchBar({
                       key={result.id}
                       onSelect={() => {
                         setQuery(result.name);
-                        handleSearch();
+                        handleSearch(result.name);
                       }}
                     >
                       {result.name}
@@ -213,7 +213,7 @@ export default function SearchBar({
                       key={result.id}
                       onSelect={() => {
                         setQuery(result.name);
-                        handleSearch();
+                        handleSearch(result.name);
                       }}
                     >
                       {result.name}

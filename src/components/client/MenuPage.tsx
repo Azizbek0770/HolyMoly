@@ -161,6 +161,8 @@ export default function MenuPage() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    // Reset category to "All" when searching
+    setActiveCategory("All");
   };
 
   const handleAddToCart = (item: any) => {
