@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Function to update user data in context
+  // Function to update User data in context
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       setUser({ ...user, ...userData });
@@ -176,6 +176,7 @@ async function signIn(email: string, password: string, role: UserRole) {
       email: "admin@example.com",
       name: "Admin User",
       role: "admin",
+      phone: "(999) 987-6543",
       createdAt: new Date().toISOString(),
     },
     client: {
