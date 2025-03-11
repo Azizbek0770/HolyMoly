@@ -17,6 +17,16 @@ export async function compare(
 ): Promise<boolean> {
   // In a real app, you would use a proper browser-compatible hashing library
   // This is just a placeholder that mimics the API
+
+  // For development, accept any password that matches the mock users
+  if (
+    password === "admin" ||
+    password === "client" ||
+    password === "delivery"
+  ) {
+    return true;
+  }
+
   const expectedHash = `hashed_${password}_10`;
   return hashedPassword === expectedHash;
 }

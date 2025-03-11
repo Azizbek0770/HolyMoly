@@ -1,26 +1,12 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
 import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  phone?: string;
-  loyaltyPoints?: number;
-  membershipTier?: string;
-  bio?: string;
-  birthdate?: string;
-  avatar?: string;
-  createdAt?: string;
-}
-
-type UserRole = "admin" | "client" | "delivery";
+  User,
+  UserRole,
+  mockSignIn,
+  mockSignUp,
+  mockSignOut,
+  mockGetCurrentUser,
+} from "@/lib/auth-utils";
 
 interface AuthContextType {
   user: User | null;
@@ -43,7 +29,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+// Define the component as a named function declaration instead of a function expression
+// This helps with Fast Refresh in React
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadUser() {
       setIsLoading(true);
-      const currentUser = await getCurrentUser();
+      const currentUser = await mockGetCurrentUser();
       setUser(currentUser);
       setIsLoading(false);
     }
@@ -64,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const { user, error } = await signIn(email, password, role);
+      const { user, error } = await mockSignIn(email, password, role);
 
       if (error) {
         setError(error);
@@ -96,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const { success, error } = await signUp(email, password, name, role);
+      const { success, error } = await mockSignUp(email, password, name, role);
 
       if (error) {
         setError(error);
@@ -123,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const { error } = await signOut();
+      const { error } = await mockSignOut();
 
       if (error) {
         setError(error);
@@ -156,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
@@ -164,72 +152,4 @@ export function useAuth() {
   return context;
 }
 
-// Mock authentication functions
-async function signIn(email: string, password: string, role: UserRole) {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Mock users
-  const users = {
-    admin: {
-      id: "admin-123",
-      email: "admin@example.com",
-      name: "Admin User",
-      role: "admin",
-      createdAt: new Date().toISOString(),
-    },
-    client: {
-      id: "client-123",
-      email: "client@example.com",
-      name: "Client User",
-      role: "client",
-      phone: "(555) 123-4567",
-      loyaltyPoints: 450,
-      membershipTier: "Silver",
-      createdAt: new Date().toISOString(),
-    },
-    delivery: {
-      id: "delivery-123",
-      email: "delivery@example.com",
-      name: "Delivery User",
-      role: "delivery",
-      phone: "(555) 987-6543",
-      createdAt: new Date().toISOString(),
-    },
-  };
-
-  // Check if email and role match
-  if (email === `${role}@example.com` && password === role) {
-    return { user: users[role], error: null };
-  }
-
-  return { user: null, error: "Invalid credentials" };
-}
-
-async function signUp(
-  email: string,
-  password: string,
-  name: string,
-  role: UserRole,
-) {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // In a real app, you would create a new user in the database
-  return { success: true, error: null };
-}
-
-async function signOut() {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  return { error: null };
-}
-
-async function getCurrentUser() {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // In a real app, you would check for a stored token and fetch the user
-  return null;
-}
+export { AuthProvider, useAuth };

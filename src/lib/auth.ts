@@ -22,7 +22,7 @@ export async function signIn(
 
       // Mock admin login
       if (
-        (email === "admin@example.com" && password === "password") ||
+        (email === "admin@example.com" && password === "admin") ||
         (email === "admin" && password === "admin")
       ) {
         const user = {
@@ -37,7 +37,7 @@ export async function signIn(
 
       // Mock client login
       if (
-        (email === "client@example.com" && password === "password") ||
+        (email === "client@example.com" && password === "client") ||
         (email === "client" && password === "client")
       ) {
         const user = {
@@ -52,7 +52,7 @@ export async function signIn(
 
       // Mock delivery login
       if (
-        (email === "delivery@example.com" && password === "password") ||
+        (email === "delivery@example.com" && password === "delivery") ||
         (email === "delivery" && password === "delivery")
       ) {
         const user = {

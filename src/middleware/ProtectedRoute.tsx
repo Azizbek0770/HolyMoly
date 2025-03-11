@@ -1,11 +1,10 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/lib/auth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles: UserRole[];
+  allowedRoles: string[];
 }
 
 export default function ProtectedRoute({
@@ -23,22 +22,26 @@ export default function ProtectedRoute({
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not logged in, redirect to login
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // If user doesn't have the required role, redirect to appropriate dashboard
+  // If user doesn't have the required role, redirect to appropriate page
   if (!allowedRoles.includes(user.role)) {
+    // Redirect based on user's role
     if (user.role === "admin") {
       return <Navigate to="/admin" replace />;
+    } else if (user.role === "client") {
+      return <Navigate to="/client" replace />;
     } else if (user.role === "delivery") {
       return <Navigate to="/delivery" replace />;
-    } else {
-      return <Navigate to="/client" replace />;
     }
+
+    // Fallback to login if role is unknown
+    return <Navigate to="/login" replace />;
   }
 
-  // If authenticated and has the right role, render the children
+  // If user has the required role, render the protected content
   return <>{children}</>;
 }
