@@ -41,33 +41,47 @@ function App() {
 
         {/* Client routes */}
         <Route
-          path="/client/*"
+          path="/client"
           element={
             <ProtectedRoute allowedRoles={["client"]}>
               <ClientLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<MenuPage />} />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="orders" element={<OrderHistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="food/:id" element={<FoodDetailPage />} />
+          <Route path="favorites" element={<MenuPage />} />
+        </Route>
 
         {/* Admin routes */}
         <Route
-          path="/admin/*"
+          path="/admin"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="food-items" element={<FoodItemsPage />} />
+          <Route path="food-items/:id" element={<FoodItemDetailPage />} />
+          <Route path="special-offers" element={<SpecialOffersPage />} />
+        </Route>
 
         {/* Delivery routes */}
         <Route
-          path="/delivery/*"
+          path="/delivery"
           element={
             <ProtectedRoute allowedRoles={["delivery"]}>
               <DeliveryLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<DeliveryOrdersPage />} />
+        </Route>
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />

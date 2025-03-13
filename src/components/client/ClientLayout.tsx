@@ -1,60 +1,58 @@
-import { useState, useEffect } from "react";
-import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import SearchBar from "./SearchBar";
-import LogoutButton from "@/components/ui/LogoutButton";
-import UserAvatar from "@/components/ui/UserAvatar";
-import {
-  ShoppingCart,
-  User,
-  Search,
-  Home,
-  Clock,
-  Settings,
-  Menu,
-  Heart,
-  Sun,
-  Moon,
-} from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import SearchBar from "./SearchBar";
+import {
+  Home,
+  Menu,
+  ShoppingCart,
+  Clock,
+  User,
+  Heart,
+  LogOut,
+  Search,
+} from "lucide-react";
 
 export default function ClientLayout() {
-  const { totalItems: cartCount } = useCart();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("");
-  const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Set active tab based on current path
-    const path = location.pathname.split("/")[2] || "";
-    setActiveTab(path || "home");
-  }, [location]);
+  const { user, logout } = useAuth();
+  const { totalItems } = useCart();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const navItems = [
-    { name: "Home", path: "/client", icon: <Home className="h-5 w-5" /> },
+    { path: "/client", label: "Home", icon: <Home className="h-5 w-5" /> },
     {
-      name: "Orders",
+      path: "/client/cart",
+      label: "Cart",
+      icon: <ShoppingCart className="h-5 w-5" />,
+      badge: totalItems > 0 ? totalItems : undefined,
+    },
+    {
       path: "/client/orders",
+      label: "Orders",
       icon: <Clock className="h-5 w-5" />,
     },
     {
-      name: "Favorites",
       path: "/client/favorites",
+      label: "Favorites",
       icon: <Heart className="h-5 w-5" />,
     },
     {
-      name: "Profile",
       path: "/client/profile",
+      label: "Profile",
       icon: <User className="h-5 w-5" />,
     },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -62,7 +60,6 @@ export default function ClientLayout() {
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            {/* Mobile Menu Trigger */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
@@ -74,95 +71,128 @@ export default function ClientLayout() {
                   <h1 className="text-xl font-bold">FoodDelivery</h1>
                 </div>
                 <div className="p-4 border-b">
-                  <UserAvatar showName={true} />
+                  <div className="flex items-center">
+                    <Avatar className="h-10 w-10 mr-2">
+                      <AvatarImage
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || "User"}`}
+                      />
+                      <AvatarFallback>
+                        {user?.name?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user?.name || "User"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {user?.email || ""}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="p-4">
                   {navItems.map((item) => (
-                    <Button
-                      key={item.name}
-                      variant={
-                        activeTab === item.name.toLowerCase()
-                          ? "default"
-                          : "ghost"
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `flex items-center justify-between py-2 px-3 rounded-md transition-colors ${isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`
                       }
-                      className="w-full justify-start mb-1"
-                      onClick={() => navigate(item.path)}
+                      end={item.path === "/client"}
                     >
-                      {item.icon}
-                      <span className="ml-3">{item.name}</span>
-                    </Button>
+                      <div className="flex items-center">
+                        {item.icon}
+                        <span className="ml-2">{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <Badge className="ml-auto">{item.badge}</Badge>
+                      )}
+                    </NavLink>
                   ))}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start mt-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5 mr-2" />
+                    Logout
+                  </Button>
                 </nav>
-                <div className="p-4 border-t mt-auto">
-                  <LogoutButton />
-                </div>
               </SheetContent>
             </Sheet>
             <h1 className="text-xl font-bold">FoodDelivery</h1>
           </div>
 
           <div className="hidden md:flex flex-1 max-w-md mx-4">
-            <SearchBar className="w-full" />
+            <SearchBar
+              className="w-full"
+              placeholder="Search for food, restaurants..."
+            />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleTheme}
-              className="transition-transform hover:scale-110"
+              className="md:hidden"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
-              {theme === "dark" ? (
-                <Sun className="h-5 w-5 transition-all" />
-              ) : (
-                <Moon className="h-5 w-5 transition-all" />
-              )}
+              <Search className="h-5 w-5" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative transition-transform hover:scale-110"
-              onClick={() => navigate("/client/cart")}
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 animate-in zoom-in-50 duration-300">
-                  {cartCount}
-                </Badge>
-              )}
-            </Button>
-            <div className="hidden md:block">
-              <UserAvatar />
-            </div>
+
+            <NavLink to="/client/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                    {totalItems}
+                  </Badge>
+                )}
+              </Button>
+            </NavLink>
+
+            <NavLink to="/client/profile">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || "User"}`}
+                />
+                <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
+            </NavLink>
           </div>
         </div>
+
+        {/* Mobile Search Bar */}
+        {isSearchOpen && (
+          <div className="p-4 border-t md:hidden">
+            <SearchBar placeholder="Search for food, restaurants..." />
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container py-4 px-4">
+      <main className="flex-1 container py-6 px-4">
         <Outlet />
       </main>
 
-      {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 py-2 border-t bg-background">
-        <SearchBar className="w-full" />
-      </div>
-
       {/* Mobile Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-10">
-        <div className="grid grid-cols-4 h-16">
-          {navItems.map((item, index) => (
-            <Button
-              key={index}
-              variant={
-                activeTab === item.name.toLowerCase() ? "default" : "ghost"
+        <div className="grid grid-cols-5 h-16">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center relative ${isActive ? "text-primary" : "text-muted-foreground"}`
               }
-              className="flex flex-col items-center justify-center rounded-none h-full"
-              onClick={() => navigate(item.path)}
+              end={item.path === "/client"}
             >
               {item.icon}
-              <span className="text-xs mt-1">{item.name}</span>
-            </Button>
+              <span className="text-xs mt-1">{item.label}</span>
+              {item.badge && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
+                  {item.badge}
+                </Badge>
+              )}
+            </NavLink>
           ))}
         </div>
       </div>
