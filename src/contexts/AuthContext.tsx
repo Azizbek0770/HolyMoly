@@ -29,12 +29,8 @@ interface AuthContextType {
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
-// Using default export for the provider component
-export default function AuthProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Named function component for the provider
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -131,7 +127,7 @@ export default function AuthProvider({
     }
   };
 
-  // Function to update user data in context
+  // Function to update User data in context
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       setUser({ ...user, ...userData });
@@ -147,8 +143,8 @@ export default function AuthProvider({
   );
 }
 
-// Separate named export for the hook
-export function useAuth() {
+// Named function for the hook
+function useAuth() {
   const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
@@ -156,5 +152,5 @@ export function useAuth() {
   return context;
 }
 
-// Re-export the provider for convenience
-export { AuthProvider };
+// Export both functions as named exports
+export { AuthProvider, useAuth };
