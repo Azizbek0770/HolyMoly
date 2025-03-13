@@ -7,7 +7,7 @@ export async function getFoodItems({
   maxPrice,
   sortBy,
   page = 1,
-  limit = 10,
+  limit = 20,
 }: {
   category?: string;
   search?: string;

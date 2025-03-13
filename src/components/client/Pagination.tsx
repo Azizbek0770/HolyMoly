@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
@@ -63,55 +64,69 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-center space-x-2 mt-6">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="transition-all hover:scale-110"
+      <motion.div
+        whileHover={{ scale: currentPage !== 1 ? 1.1 : 1 }}
+        whileTap={{ scale: currentPage !== 1 ? 0.9 : 1 }}
       >
-        <ChevronLeft className="h-4 w-4" />
-        <span className="sr-only">Previous Page</span>
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="sr-only">Previous Page</span>
+        </Button>
+      </motion.div>
 
       {pageNumbers.map((page, index) => {
         if (page === "...") {
           return (
-            <Button
-              key={`ellipsis-${index}`}
-              variant="outline"
-              size="sm"
-              disabled
-              className="cursor-default transition-all"
-            >
-              ...
-            </Button>
+            <motion.div key={`ellipsis-${index}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="cursor-default"
+              >
+                ...
+              </Button>
+            </motion.div>
           );
         }
 
         return (
-          <Button
+          <motion.div
             key={`page-${page}`}
-            variant={currentPage === page ? "default" : "outline"}
-            size="sm"
-            onClick={() => onPageChange(page as number)}
-            className={`transition-all duration-200 ${currentPage === page ? "pointer-events-none scale-110" : "hover:scale-110"}`}
+            whileHover={{ scale: currentPage !== page ? 1.1 : 1 }}
+            whileTap={{ scale: currentPage !== page ? 0.9 : 1 }}
           >
-            {page}
-          </Button>
+            <Button
+              variant={currentPage === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => onPageChange(page as number)}
+              className={`transition-all duration-200 ${currentPage === page ? "pointer-events-none scale-110" : ""}`}
+            >
+              {page}
+            </Button>
+          </motion.div>
         );
       })}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="transition-all hover:scale-110"
+      <motion.div
+        whileHover={{ scale: currentPage !== totalPages ? 1.1 : 1 }}
+        whileTap={{ scale: currentPage !== totalPages ? 0.9 : 1 }}
       >
-        <ChevronRight className="h-4 w-4" />
-        <span className="sr-only">Next Page</span>
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+          <span className="sr-only">Next Page</span>
+        </Button>
+      </motion.div>
     </div>
   );
 }

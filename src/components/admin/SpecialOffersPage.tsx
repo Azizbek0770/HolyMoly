@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -59,6 +60,8 @@ import {
   Percent,
   DollarSign,
   Image as ImageIcon,
+  Save,
+  X,
 } from "lucide-react";
 
 interface Promotion {
@@ -145,6 +148,9 @@ export default function SpecialOffersPage() {
   const { toast } = useToast();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isToggling, setIsToggling] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(
@@ -257,24 +263,52 @@ export default function SpecialOffersPage() {
     setShowAddDialog(true);
   };
 
-  const handleDeletePromotion = (id: string) => {
-    setPromotions((prev) => prev.filter((promotion) => promotion.id !== id));
-    toast({
-      title: "Promotion deleted",
-      description: "The promotion has been deleted successfully",
-    });
+  const handleDeletePromotion = async (id: string) => {
+    setIsDeleting(id);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setPromotions((prev) => prev.filter((promotion) => promotion.id !== id));
+      toast({
+        title: "Promotion deleted",
+        description: "The promotion has been deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting promotion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete promotion. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
-  const handleToggleActive = (id: string, active: boolean) => {
-    setPromotions((prev) =>
-      prev.map((promotion) =>
-        promotion.id === id ? { ...promotion, active } : promotion,
-      ),
-    );
-    toast({
-      title: active ? "Promotion activated" : "Promotion deactivated",
-      description: `The promotion has been ${active ? "activated" : "deactivated"} successfully`,
-    });
+  const handleToggleActive = async (id: string, active: boolean) => {
+    setIsToggling(id);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setPromotions((prev) =>
+        prev.map((promotion) =>
+          promotion.id === id ? { ...promotion, active } : promotion,
+        ),
+      );
+      toast({
+        title: active ? "Promotion activated" : "Promotion deactivated",
+        description: `The promotion has been ${active ? "activated" : "deactivated"} successfully`,
+      });
+    } catch (error) {
+      console.error("Error toggling promotion:", error);
+      toast({
+        title: "Error",
+        description: `Failed to ${active ? "activate" : "deactivate"} promotion. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsToggling(null);
+    }
   };
 
   const validateForm = () => {
@@ -380,9 +414,13 @@ export default function SpecialOffersPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       // In a real app, you would send the data to an API
       // For now, we'll just update the local state
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const newPromotion: Promotion = {
         id: editingPromotion?.id || `new-${Date.now()}`,
         code: formData.code,
@@ -430,6 +468,8 @@ export default function SpecialOffersPage() {
         description: "Failed to save promotion. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -464,7 +504,7 @@ export default function SpecialOffersPage() {
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <Spinner size="lg" />
         </div>
       ) : (
         <div className="space-y-6">
@@ -536,8 +576,15 @@ export default function SpecialOffersPage() {
                     onClick={() =>
                       handleToggleActive(promotion.id, !promotion.active)
                     }
+                    disabled={isToggling === promotion.id}
                   >
-                    {promotion.active ? "Deactivate" : "Activate"}
+                    {isToggling === promotion.id ? (
+                      <Spinner size="sm" className="mr-2" />
+                    ) : promotion.active ? (
+                      "Deactivate"
+                    ) : (
+                      "Activate"
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -564,8 +611,16 @@ export default function SpecialOffersPage() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDeletePromotion(promotion.id)}
+                          disabled={isDeleting === promotion.id}
                         >
-                          Delete
+                          {isDeleting === promotion.id ? (
+                            <>
+                              <Spinner size="sm" className="mr-2" />
+                              Deleting...
+                            </>
+                          ) : (
+                            "Delete"
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -798,11 +853,25 @@ export default function SpecialOffersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setShowAddDialog(false)}
+              disabled={isSubmitting}
+            >
+              <X className="h-4 w-4 mr-2" /> Cancel
             </Button>
-            <Button onClick={handleSavePromotion}>
-              {editingPromotion ? "Update Promotion" : "Create Promotion"}
+            <Button onClick={handleSavePromotion} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  {editingPromotion ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {editingPromotion ? "Update Promotion" : "Create Promotion"}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { Spinner } from "@/components/ui/spinner";
 import { useCart } from "@/contexts/CartContext";
 import ReviewForm from "@/components/forms/ReviewForm";
 import {
@@ -171,9 +173,223 @@ export default function FoodDetailPage() {
   const [foodItem, setFoodItem] = useState<FoodItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [showReviewForm, setShowReviewForm] = useState(false);
+
+  // Mock data for multiple food items
+  const mockFoodItems = {
+    "1": mockFoodItem,
+    "2": {
+      id: "2",
+      name: "Pepperoni Pizza",
+      description:
+        "Classic pizza with tomato sauce, mozzarella, and pepperoni. Our pepperoni is made from high-quality pork and beef, seasoned with paprika and other spices.",
+      price: 14.99,
+      image:
+        "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80",
+      category: "Pizza",
+      rating: 4.6,
+      preparationTime: 20,
+      restaurant: {
+        id: "1",
+        name: "Pizza Palace",
+        deliveryTime: "20-30 min",
+        rating: 4.8,
+      },
+      ingredients: [
+        "Homemade Pizza Dough",
+        "San Marzano Tomato Sauce",
+        "Mozzarella Cheese",
+        "Pepperoni Slices",
+        "Oregano",
+        "Olive Oil",
+      ],
+      nutritionalInfo: {
+        calories: 320,
+        protein: 15,
+        carbs: 38,
+        fat: 14,
+      },
+      allergens: ["Wheat", "Milk"],
+      reviews: [
+        {
+          id: "r1",
+          user: {
+            id: "u1",
+            name: "Alex Johnson",
+            image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+          },
+          rating: 5,
+          comment:
+            "Best pepperoni pizza I've ever had! The pepperoni was perfectly crispy.",
+          date: "2023-06-12",
+        },
+        {
+          id: "r2",
+          user: {
+            id: "u2",
+            name: "Sarah Miller",
+            image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+          },
+          rating: 4,
+          comment:
+            "Really good pizza, generous amount of pepperoni. Would order again!",
+          date: "2023-06-08",
+        },
+      ],
+      relatedItems: [
+        {
+          id: "1",
+          name: "Margherita Pizza",
+          image:
+            "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=300&q=80",
+          price: 12.99,
+          rating: 4.7,
+        },
+        {
+          id: "3",
+          name: "Vegetarian Pizza",
+          image:
+            "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=300&q=80",
+          price: 13.99,
+          rating: 4.5,
+        },
+        {
+          id: "4",
+          name: "Garlic Bread",
+          image:
+            "https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=300&q=80",
+          price: 5.99,
+          rating: 4.8,
+        },
+      ],
+    },
+    "3": {
+      id: "3",
+      name: "Cheeseburger",
+      description:
+        "Juicy beef patty with cheese, lettuce, tomato, and special sauce. Made with 100% Angus beef and served on a toasted brioche bun.",
+      price: 9.99,
+      image:
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80",
+      category: "Burgers",
+      rating: 4.3,
+      preparationTime: 15,
+      restaurant: {
+        id: "2",
+        name: "Burger Joint",
+        deliveryTime: "15-25 min",
+        rating: 4.6,
+      },
+      ingredients: [
+        "Angus Beef Patty",
+        "Cheddar Cheese",
+        "Lettuce",
+        "Tomato",
+        "Red Onion",
+        "Special Sauce",
+        "Brioche Bun",
+      ],
+      nutritionalInfo: {
+        calories: 650,
+        protein: 28,
+        carbs: 45,
+        fat: 38,
+      },
+      allergens: ["Wheat", "Milk", "Eggs", "Soy"],
+      reviews: [
+        {
+          id: "r1",
+          user: {
+            id: "u1",
+            name: "Chris Wilson",
+            image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Chris",
+          },
+          rating: 4,
+          comment:
+            "Great burger! The meat was juicy and the special sauce was delicious.",
+          date: "2023-06-14",
+        },
+      ],
+      relatedItems: [
+        {
+          id: "4",
+          name: "Bacon Burger",
+          image:
+            "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=300&q=80",
+          price: 11.99,
+          rating: 4.6,
+        },
+        {
+          id: "7",
+          name: "French Fries",
+          image:
+            "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=80",
+          price: 3.99,
+          rating: 4.4,
+        },
+      ],
+    },
+    "4": {
+      id: "4",
+      name: "California Roll",
+      description:
+        "Crab, avocado, and cucumber wrapped in seaweed and rice. Served with soy sauce, wasabi, and pickled ginger.",
+      price: 14.99,
+      image:
+        "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80",
+      category: "Sushi",
+      rating: 4.7,
+      preparationTime: 25,
+      restaurant: {
+        id: "3",
+        name: "Sushi Express",
+        deliveryTime: "25-35 min",
+        rating: 4.9,
+      },
+      ingredients: [
+        "Crab Meat",
+        "Avocado",
+        "Cucumber",
+        "Nori Seaweed",
+        "Sushi Rice",
+        "Sesame Seeds",
+      ],
+      nutritionalInfo: {
+        calories: 255,
+        protein: 9,
+        carbs: 38,
+        fat: 7,
+      },
+      allergens: ["Shellfish", "Soy"],
+      reviews: [
+        {
+          id: "r1",
+          user: {
+            id: "u1",
+            name: "Emily Chen",
+            image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
+          },
+          rating: 5,
+          comment:
+            "Fresh ingredients and perfectly prepared rice. One of the best California rolls I've had!",
+          date: "2023-06-10",
+        },
+      ],
+      relatedItems: [
+        {
+          id: "6",
+          name: "Dragon Roll",
+          image:
+            "https://images.unsplash.com/photo-1617196034183-421b4917c92d?w=300&q=80",
+          price: 16.99,
+          rating: 4.8,
+        },
+      ],
+    },
+  };
 
   useEffect(() => {
     // In a real app, you would fetch the food item data from an API
@@ -183,7 +399,10 @@ export default function FoodDetailPage() {
       try {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 500));
-        setFoodItem(mockFoodItem);
+
+        // Get the food item based on the ID from the URL
+        const selectedItem = mockFoodItems[id] || mockFoodItem;
+        setFoodItem(selectedItem);
       } catch (error) {
         console.error("Error fetching food item:", error);
         toast({
@@ -205,22 +424,38 @@ export default function FoodDetailPage() {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!foodItem) return;
 
-    addToCart({
-      id: foodItem.id,
-      name: foodItem.name,
-      price: foodItem.price,
-      image: foodItem.image,
-      quantity,
-    });
+    setIsAddingToCart(true);
 
-    toast({
-      title: "Added to cart",
-      description: `${quantity} x ${foodItem.name} added to your cart`,
-      duration: 3000,
-    });
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      addToCart({
+        id: foodItem.id,
+        name: foodItem.name,
+        price: foodItem.price,
+        image: foodItem.image,
+        quantity,
+      });
+
+      toast({
+        title: "Added to cart",
+        description: `${quantity} x ${foodItem.name} added to your cart`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleToggleFavorite = () => {
@@ -261,7 +496,7 @@ export default function FoodDetailPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <Spinner size="xl" />
       </div>
     );
   }
@@ -371,26 +606,51 @@ export default function FoodDetailPage() {
           {/* Quantity and Add to Cart */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(quantity - 1)}
-                disabled={quantity <= 1}
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+              </motion.div>
+              <motion.span
+                className="w-12 text-center font-medium"
+                key={quantity}
+                initial={{ scale: 0.8, opacity: 0.5 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.2 }}
               >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-12 text-center font-medium">{quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(quantity + 1)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+                {quantity}
+              </motion.span>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </motion.div>
             </div>
-            <Button className="flex-1 ml-4" size="lg" onClick={handleAddToCart}>
-              Add to Cart - ${(foodItem.price * quantity).toFixed(2)}
-            </Button>
+            <motion.div
+              className="flex-1 ml-4"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button className="w-full" size="lg" onClick={handleAddToCart}>
+                {isAddingToCart ? (
+                  <span className="flex items-center">
+                    <Spinner size="sm" className="mr-2" />
+                    Adding...
+                  </span>
+                ) : (
+                  <>Add to Cart - ${(foodItem.price * quantity).toFixed(2)}</>
+                )}
+              </Button>
+            </motion.div>
           </div>
 
           {/* Tabs for additional information */}

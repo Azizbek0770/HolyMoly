@@ -6,6 +6,8 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { CartProvider } from "./contexts/CartContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { Toaster } from "@/components/ui/toaster";
 
 import { TempoDevtools } from "tempo-devtools";
 TempoDevtools.init();
@@ -18,7 +20,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
-            <App />
+            <NotificationProvider>
+              <App />
+              <Toaster />
+            </NotificationProvider>
           </CartProvider>
         </AuthProvider>
       </ThemeProvider>

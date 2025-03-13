@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ export default function CartPage() {
     clearCart,
   } = useCart();
   const { toast } = useToast();
+  const { addNotification } = useNotifications();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -71,6 +73,14 @@ export default function CartPage() {
         title: "Payment successful!",
         description: "Your order has been placed successfully.",
         duration: 3000,
+      });
+
+      // Add notification for order confirmation
+      addNotification({
+        type: "order",
+        title: "Order Confirmed",
+        message: `Your order for $${total.toFixed(2)} has been placed successfully. Estimated delivery in 30-45 minutes.`,
+        actionUrl: "/client/orders",
       });
 
       // Clear the cart

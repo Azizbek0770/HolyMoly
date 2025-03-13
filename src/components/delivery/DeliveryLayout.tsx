@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { useAuth } from "@/contexts/AuthContext";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { NotificationCenter } from "@/components/ui/notification-center";
 import { Menu, ShoppingBag, MapPin, Clock, User, Bell } from "lucide-react";
 
 export default function DeliveryLayout() {
@@ -99,12 +101,7 @@ export default function DeliveryLayout() {
                 onCheckedChange={setIsOnline}
               />
             </div>
-            <Button variant="outline" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0">
-                2
-              </Badge>
-            </Button>
+            <NotificationCenter />
             <UserAvatar />
           </div>
         </div>
@@ -160,7 +157,13 @@ export default function DeliveryLayout() {
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
           <div className="container py-6 px-4">
-            <Outlet />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Outlet />
+            </motion.div>
           </div>
         </main>
       </div>

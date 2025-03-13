@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { NotificationCenter } from "@/components/ui/notification-center";
+import LogoutButton from "@/components/ui/LogoutButton";
+import UserAvatar from "@/components/ui/UserAvatar";
+import { Spinner } from "@/components/ui/spinner";
 import {
   LayoutDashboard,
   Utensils,
@@ -13,12 +18,9 @@ import {
   ShoppingBag,
   Tag,
   Settings,
-  LogOut,
   Menu,
-  X,
   Sun,
   Moon,
-  Bell,
   Search,
 } from "lucide-react";
 import {
@@ -38,7 +40,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function AdminLayout() {
-  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -77,13 +78,6 @@ export default function AdminLayout() {
     },
   ];
 
-  const handleSignOut = async () => {
-    const result = await logout();
-    if (result.success) {
-      navigate("/");
-    }
-  };
-
   return (
     <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}
@@ -107,14 +101,7 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className="p-4 border-t">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:text-foreground"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-5 w-5 mr-3" />
-            Sign Out
-          </Button>
+          <LogoutButton className="w-full justify-start text-muted-foreground hover:text-foreground" />
         </div>
       </aside>
 
@@ -141,14 +128,7 @@ export default function AdminLayout() {
             ))}
           </nav>
           <div className="p-4 border-t mt-auto">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Sign Out
-            </Button>
+            <LogoutButton className="w-full justify-start text-muted-foreground hover:text-foreground" />
           </div>
         </SheetContent>
       </Sheet>
@@ -184,41 +164,28 @@ export default function AdminLayout() {
                 <Moon className="h-5 w-5" />
               )}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground relative"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
+            <NotificationCenter />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   className="relative h-8 w-8 rounded-full"
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
-                      alt="Admin"
-                    />
-                    <AvatarFallback>AD</AvatarFallback>
-                  </Avatar>
+                  <UserAvatar size="sm" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/admin/profile")}>
-                  Profile
+                <DropdownMenuItem onClick={() => navigate("/admin")}>
+                  Dashboard
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/admin/settings")}>
-                  Settings
+                <DropdownMenuItem onClick={() => navigate("/admin/food-items")}>
+                  Food Items
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign Out
+                <DropdownMenuItem>
+                  <LogoutButton showIcon={false} variant="ghost" size="sm" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -227,7 +194,13 @@ export default function AdminLayout() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto bg-muted/20">
-          <Outlet />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Outlet />
+          </motion.div>
         </main>
       </div>
     </div>

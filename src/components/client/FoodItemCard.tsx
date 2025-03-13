@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { Star, ShoppingCart, Eye, Heart } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FoodItemCardProps {
   id: string;
@@ -134,37 +134,53 @@ export default function FoodItemCard({
         </Badge>
 
         {/* Quick action overlay */}
-        {isHovered && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2"
-          >
-            <Button
-              size="sm"
-              variant="secondary"
-              className="rounded-full"
-              onClick={handleAddToCart}
-              disabled={isAddingToCart}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2"
             >
-              {isAddingToCart ? (
-                <Spinner size="sm" className="mr-1" />
-              ) : (
-                <ShoppingCart className="h-4 w-4 mr-1" />
-              )}
-              Add to Cart
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full bg-white/80 hover:bg-white"
-              onClick={handleViewDetails}
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              Quick View
-            </Button>
-          </motion.div>
-        )}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full transition-transform hover:scale-105"
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                >
+                  {isAddingToCart ? (
+                    <Spinner size="sm" className="mr-1" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                  )}
+                  Add to Cart
+                </Button>
+              </motion.div>
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.2 }}
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full bg-white/80 hover:bg-white transition-transform hover:scale-105"
+                  onClick={handleViewDetails}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  Quick View
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <CardContent className="p-4 flex-1 flex flex-col">
@@ -179,35 +195,39 @@ export default function FoodItemCard({
           <span className="font-bold text-lg">${price.toFixed(2)}</span>
           <div className="flex items-center gap-2">
             {onToggleFavorite && (
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-muted"
+                  onClick={handleToggleFavorite}
+                  disabled={isTogglingFavorite}
+                >
+                  {isTogglingFavorite ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Heart
+                      className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : ""} transition-colors duration-300`}
+                    />
+                  )}
+                </Button>
+              </motion.div>
+            )}
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-full hover:bg-muted"
-                onClick={handleToggleFavorite}
-                disabled={isTogglingFavorite}
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
               >
-                {isTogglingFavorite ? (
+                {isAddingToCart ? (
                   <Spinner size="sm" />
                 ) : (
-                  <Heart
-                    className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
-                  />
+                  <ShoppingCart className="h-5 w-5" />
                 )}
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full hover:bg-muted"
-              onClick={handleAddToCart}
-              disabled={isAddingToCart}
-            >
-              {isAddingToCart ? (
-                <Spinner size="sm" />
-              ) : (
-                <ShoppingCart className="h-5 w-5" />
-              )}
-            </Button>
+            </motion.div>
           </div>
         </div>
       </CardContent>
