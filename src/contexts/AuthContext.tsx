@@ -1,4 +1,10 @@
-import React from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import {
   User,
   UserRole,
@@ -27,20 +33,28 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Named function component for the provider
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-  React.useEffect(() => {
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
     async function loadUser() {
       setIsLoading(true);
-      const currentUser = await mockGetCurrentUser();
-      setUser(currentUser);
-      setIsLoading(false);
+      try {
+        const currentUser = await mockGetCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+        console.error("Error loading user:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     loadUser();
@@ -143,14 +157,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Named function for the hook
-function useAuth() {
-  const context = React.useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
-
-// Export both functions as named exports
-export { AuthProvider, useAuth };

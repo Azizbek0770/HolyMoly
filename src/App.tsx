@@ -25,60 +25,54 @@ import ProtectedRoute from "@/middleware/ProtectedRoute";
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
-      <ThemeProvider>
-        <AuthProvider>
-          <CartProvider>
-            {/* For the tempo routes */}
-            {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+      {/* For the tempo routes */}
+      {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
 
-            {/* Main application routes */}
-            <Routes>
-              {/* Add this before the catchall route */}
-              {import.meta.env.VITE_TEMPO === "true" && (
-                <Route path="/tempobook/*" element={null} />
-              )}
+      {/* Main application routes */}
+      <Routes>
+        {/* Add this before the catchall route */}
+        {import.meta.env.VITE_TEMPO === "true" && (
+          <Route path="/tempobook/*" element={null} />
+        )}
 
-              {/* Public routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<AuthForm />} />
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<AuthForm />} />
 
-              {/* Client routes */}
-              <Route
-                path="/client/*"
-                element={
-                  <ProtectedRoute allowedRoles={["client"]}>
-                    <ClientLayout />
-                  </ProtectedRoute>
-                }
-              />
+        {/* Client routes */}
+        <Route
+          path="/client/*"
+          element={
+            <ProtectedRoute allowedRoles={["client"]}>
+              <ClientLayout />
+            </ProtectedRoute>
+          }
+        />
 
-              {/* Admin routes */}
-              <Route
-                path="/admin/*"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              />
+        {/* Admin routes */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        />
 
-              {/* Delivery routes */}
-              <Route
-                path="/delivery/*"
-                element={
-                  <ProtectedRoute allowedRoles={["delivery"]}>
-                    <DeliveryLayout />
-                  </ProtectedRoute>
-                }
-              />
+        {/* Delivery routes */}
+        <Route
+          path="/delivery/*"
+          element={
+            <ProtectedRoute allowedRoles={["delivery"]}>
+              <DeliveryLayout />
+            </ProtectedRoute>
+          }
+        />
 
-              {/* Fallback route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Toaster />
-          </CartProvider>
-        </AuthProvider>
-      </ThemeProvider>
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Toaster />
     </Suspense>
   );
 }

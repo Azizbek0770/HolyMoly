@@ -59,10 +59,9 @@ export async function mockSignIn(
 
   // Simplified login for development
   // Allow login with just the role name or with email
-  if (email === role || email === `${role}@example.com`) {
-    if (password === role) {
-      return { user: getMockUser(role), error: null };
-    }
+  // Also allow login with any email and password matching the role
+  if (email === role || email === `${role}@example.com` || password === role) {
+    return { user: getMockUser(role), error: null };
   }
 
   return { user: null, error: "Invalid credentials" };
@@ -78,8 +77,21 @@ export async function mockSignUp(
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  // In a real app, you would create a new user in the database
-  return { success: true, error: null };
+  // Create a mock user and store in localStorage for immediate login
+  try {
+    const mockUser = {
+      id: `mock-${role}-${Date.now()}`,
+      email,
+      name,
+      role,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem("mockUser", JSON.stringify(mockUser));
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error during mock signup:", error);
+    return { success: false, error: "Failed to create user" };
+  }
 }
 
 // Mock sign out function
@@ -95,6 +107,15 @@ export async function mockGetCurrentUser() {
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // In a real app, you would check for a stored token and fetch the user
+  // Check if we have a stored user in localStorage
+  try {
+    const storedUser = localStorage.getItem("mockUser");
+    if (storedUser) {
+      return JSON.parse(storedUser);
+    }
+  } catch (error) {
+    console.error("Error getting stored user:", error);
+  }
+
   return null;
 }
