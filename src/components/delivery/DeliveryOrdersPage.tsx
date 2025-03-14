@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -7,458 +9,655 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationContext";
+import { Spinner } from "@/components/ui/spinner";
 import {
   MapPin,
-  Phone,
   Clock,
+  Phone,
   Navigation,
   CheckCircle,
   XCircle,
-  Info,
+  AlertTriangle,
 } from "lucide-react";
 
 type Order = {
   id: string;
-  customer: {
+  status: string;
+  createdAt: string;
+  estimatedDelivery: string;
+  actualDelivery?: string;
+  subtotal: number;
+  tax: number;
+  deliveryFee: number;
+  total: number;
+  deliveryNotes?: string;
+  user: {
+    id: string;
     name: string;
-    address: string;
     phone: string;
   };
-  restaurant: {
-    name: string;
+  address: {
     address: string;
+    city: string;
+    state: string;
+    zip: string;
   };
   items: {
-    name: string;
+    id: string;
     quantity: number;
+    price: number;
+    foodItem: {
+      id: string;
+      name: string;
+      image: string;
+    };
   }[];
-  total: number;
-  status: "pending" | "accepted" | "picked" | "delivered" | "cancelled";
-  estimatedTime?: number;
-  distance?: number;
+  statusUpdates: {
+    id: string;
+    status: string;
+    notes?: string;
+    createdAt: string;
+  }[];
 };
 
+// Mock data for delivery orders
 const mockOrders: Order[] = [
   {
-    id: "ORD-1234",
-    customer: {
-      name: "John Doe",
-      address: "123 Main St, Apt 4B, New York, NY 10001",
+    id: "ORD-1236",
+    status: "processing",
+    createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
+    estimatedDelivery: new Date(Date.now() + 45 * 60000).toISOString(),
+    subtotal: 32.75,
+    tax: 3.28,
+    deliveryFee: 2.99,
+    total: 39.02,
+    deliveryNotes: "Please leave at the door. Ring doorbell.",
+    user: {
+      id: "u3",
+      name: "Emily Chen",
       phone: "(555) 123-4567",
     },
-    restaurant: {
-      name: "Pizza Palace",
-      address: "456 Broadway, New York, NY 10002",
+    address: {
+      address: "123 Main St, Apt 4B",
+      city: "New York",
+      state: "NY",
+      zip: "10001",
     },
     items: [
-      { name: "Margherita Pizza", quantity: 1 },
-      { name: "Garlic Bread", quantity: 1 },
-      { name: "Coke", quantity: 2 },
+      {
+        id: "oi1",
+        quantity: 2,
+        price: 14.99,
+        foodItem: {
+          id: "6",
+          name: "California Roll",
+          image:
+            "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=75",
+        },
+      },
+      {
+        id: "oi2",
+        quantity: 1,
+        price: 2.77,
+        foodItem: {
+          id: "7",
+          name: "Miso Soup",
+          image:
+            "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=300&q=75",
+        },
+      },
     ],
-    total: 24.99,
-    status: "pending",
-    estimatedTime: 30,
-    distance: 2.5,
+    statusUpdates: [
+      {
+        id: "su1",
+        status: "pending",
+        notes: "Order placed",
+        createdAt: new Date(Date.now() - 35 * 60000).toISOString(),
+      },
+      {
+        id: "su2",
+        status: "processing",
+        notes: "Restaurant is preparing your order",
+        createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
+      },
+    ],
   },
   {
     id: "ORD-1235",
-    customer: {
-      name: "Jane Smith",
-      address: "789 Park Ave, New York, NY 10003",
+    status: "in-transit",
+    createdAt: new Date(Date.now() - 45 * 60000).toISOString(),
+    estimatedDelivery: new Date(Date.now() + 15 * 60000).toISOString(),
+    subtotal: 18.5,
+    tax: 1.85,
+    deliveryFee: 2.99,
+    total: 23.34,
+    user: {
+      id: "u2",
+      name: "John Smith",
       phone: "(555) 987-6543",
     },
-    restaurant: {
-      name: "Burger Joint",
-      address: "321 5th Ave, New York, NY 10004",
+    address: {
+      address: "456 Park Ave, Suite 10",
+      city: "New York",
+      state: "NY",
+      zip: "10022",
     },
     items: [
-      { name: "Cheeseburger", quantity: 2 },
-      { name: "Fries", quantity: 1 },
-      { name: "Milkshake", quantity: 1 },
+      {
+        id: "oi3",
+        quantity: 1,
+        price: 9.99,
+        foodItem: {
+          id: "3",
+          name: "Cheeseburger",
+          image:
+            "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=75",
+        },
+      },
+      {
+        id: "oi4",
+        quantity: 1,
+        price: 8.51,
+        foodItem: {
+          id: "8",
+          name: "French Fries",
+          image:
+            "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&q=75",
+        },
+      },
     ],
-    total: 18.5,
-    status: "accepted",
-    estimatedTime: 25,
-    distance: 1.8,
+    statusUpdates: [
+      {
+        id: "su3",
+        status: "pending",
+        notes: "Order placed",
+        createdAt: new Date(Date.now() - 50 * 60000).toISOString(),
+      },
+      {
+        id: "su4",
+        status: "processing",
+        notes: "Restaurant is preparing your order",
+        createdAt: new Date(Date.now() - 45 * 60000).toISOString(),
+      },
+      {
+        id: "su5",
+        status: "in-transit",
+        notes: "Driver has picked up your order",
+        createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
+      },
+    ],
   },
   {
-    id: "ORD-1236",
-    customer: {
-      name: "Bob Johnson",
-      address: "555 Water St, New York, NY 10005",
-      phone: "(555) 456-7890",
+    id: "ORD-1234",
+    status: "delivered",
+    createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
+    estimatedDelivery: new Date(Date.now() - 60 * 60000).toISOString(),
+    actualDelivery: new Date(Date.now() - 65 * 60000).toISOString(),
+    subtotal: 24.99,
+    tax: 2.5,
+    deliveryFee: 2.99,
+    total: 30.48,
+    user: {
+      id: "u1",
+      name: "Sarah Johnson",
+      phone: "(555) 555-5555",
     },
-    restaurant: {
-      name: "Sushi Express",
-      address: "888 Madison Ave, New York, NY 10006",
+    address: {
+      address: "789 Broadway, Apt 5C",
+      city: "New York",
+      state: "NY",
+      zip: "10003",
     },
     items: [
-      { name: "California Roll", quantity: 2 },
-      { name: "Miso Soup", quantity: 1 },
-      { name: "Green Tea", quantity: 1 },
+      {
+        id: "oi5",
+        quantity: 1,
+        price: 12.99,
+        foodItem: {
+          id: "1",
+          name: "Margherita Pizza",
+          image:
+            "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=300&q=75",
+        },
+      },
+      {
+        id: "oi6",
+        quantity: 1,
+        price: 5.99,
+        foodItem: {
+          id: "9",
+          name: "Garlic Bread",
+          image:
+            "https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=300&q=75",
+        },
+      },
+      {
+        id: "oi7",
+        quantity: 1,
+        price: 6.01,
+        foodItem: {
+          id: "10",
+          name: "Coke",
+          image:
+            "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300&q=75",
+        },
+      },
     ],
-    total: 32.75,
-    status: "picked",
-    estimatedTime: 15,
-    distance: 3.2,
+    statusUpdates: [
+      {
+        id: "su6",
+        status: "pending",
+        notes: "Order placed",
+        createdAt: new Date(Date.now() - 125 * 60000).toISOString(),
+      },
+      {
+        id: "su7",
+        status: "processing",
+        notes: "Restaurant is preparing your order",
+        createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
+      },
+      {
+        id: "su8",
+        status: "in-transit",
+        notes: "Driver has picked up your order",
+        createdAt: new Date(Date.now() - 90 * 60000).toISOString(),
+      },
+      {
+        id: "su9",
+        status: "delivered",
+        notes: "Order has been delivered",
+        createdAt: new Date(Date.now() - 65 * 60000).toISOString(),
+      },
+    ],
   },
 ];
 
 export default function DeliveryOrdersPage() {
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-
-  const pendingOrders = mockOrders.filter(
-    (order) => order.status === "pending",
-  );
-  const activeOrders = mockOrders.filter((order) =>
-    ["accepted", "picked"].includes(order.status),
-  );
-  const completedOrders = mockOrders.filter((order) =>
-    ["delivered", "cancelled"].includes(order.status),
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { addNotification } = useNotifications();
+  const [activeTab, setActiveTab] = useState("pending");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(
+    null,
   );
 
-  const viewOrderDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setIsDetailsOpen(true);
+  useEffect(() => {
+    fetchOrders(activeTab);
+  }, [activeTab]);
+
+  const fetchOrders = async (status: string) => {
+    setIsLoading(true);
+    try {
+      // In a real app, you would call the API with the delivery person's ID
+      // const response = await getDeliveryOrders(user?.id, status);
+      // setOrders(response);
+
+      // For now, we'll filter the mock data based on status
+      await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate API delay
+
+      let filteredOrders: Order[] = [];
+      if (status === "pending") {
+        filteredOrders = mockOrders.filter(
+          (order) => order.status === "processing",
+        );
+      } else if (status === "active") {
+        filteredOrders = mockOrders.filter(
+          (order) => order.status === "in-transit",
+        );
+      } else if (status === "completed") {
+        filteredOrders = mockOrders.filter((order) =>
+          ["delivered", "cancelled"].includes(order.status),
+        );
+      } else {
+        filteredOrders = mockOrders;
+      }
+
+      setOrders(filteredOrders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load orders. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: string,
+    notes?: string,
+  ) => {
+    setProcessingOrderId(orderId);
+    try {
+      // In a real app, you would call the API to update the order status
+      // await updateOrderStatus({ orderId, status: newStatus, notes, deliveryPersonId: user?.id });
+
+      // For now, we'll update the local state
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+
+      // Update the order status in the local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (order.id === orderId) {
+            const updatedStatusUpdates = [
+              ...order.statusUpdates,
+              {
+                id: `su${Date.now()}`,
+                status: newStatus,
+                notes: notes || `Order ${newStatus}`,
+                createdAt: new Date().toISOString(),
+              },
+            ];
+
+            // If the order is delivered, set the actual delivery time
+            const updatedOrder = {
+              ...order,
+              status: newStatus,
+              statusUpdates: updatedStatusUpdates,
+            };
+
+            if (newStatus === "delivered") {
+              updatedOrder.actualDelivery = new Date().toISOString();
+            }
+
+            return updatedOrder;
+          }
+          return order;
+        }),
+      );
+
+      // If the status is updated, show a notification
+      addNotification({
+        type: "system",
+        title: `Order ${newStatus}`,
+        message: `Order ${orderId} has been ${newStatus}`,
+      });
+
+      toast({
+        title: "Status updated",
+        description: `Order status has been updated to ${newStatus}`,
+      });
+
+      // Refresh the orders list after a status change
+      fetchOrders(activeTab);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "outline";
+      case "processing":
+        return "secondary";
+      case "in-transit":
+        return "default";
+      case "delivered":
+        return "success";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
+  const formatAddress = (address: Order["address"]) => {
+    return `${address.address}, ${address.city}, ${address.state} ${address.zip}`;
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Orders</h1>
-
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="pending">
-            Pending
-            {pendingOrders.length > 0 && (
-              <Badge className="ml-2">{pendingOrders.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="active">
-            Active
-            {activeOrders.length > 0 && (
-              <Badge className="ml-2">{activeOrders.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pending" className="space-y-4">
-          {pendingOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold">No pending orders</h2>
-              <p className="text-muted-foreground mt-2">
-                New orders will appear here
-              </p>
-            </div>
-          ) : (
-            pendingOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onViewDetails={() => viewOrderDetails(order)}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="active" className="space-y-4">
-          {activeOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold">No active orders</h2>
-              <p className="text-muted-foreground mt-2">
-                Accept orders to see them here
-              </p>
-            </div>
-          ) : (
-            activeOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onViewDetails={() => viewOrderDetails(order)}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="completed" className="space-y-4">
-          {completedOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold">No completed orders</h2>
-              <p className="text-muted-foreground mt-2">
-                Completed orders will appear here
-              </p>
-            </div>
-          ) : (
-            completedOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onViewDetails={() => viewOrderDetails(order)}
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Order Details Dialog */}
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          {selectedOrder && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Order #{selectedOrder.id}</DialogTitle>
-                <DialogDescription>
-                  {getStatusText(selectedOrder.status)}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Restaurant</h3>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p>{selectedOrder.restaurant.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedOrder.restaurant.address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Customer</h3>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p>{selectedOrder.customer.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedOrder.customer.address}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <p>{selectedOrder.customer.phone}</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Order Items</h3>
-                  <ul className="space-y-1">
-                    {selectedOrder.items.map((item, index) => (
-                      <li key={index} className="flex justify-between">
-                        <span>{item.name}</span>
-                        <span>x{item.quantity}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex justify-between font-medium pt-2">
-                    <span>Total</span>
-                    <span>${selectedOrder.total.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>Est. {selectedOrder.estimatedTime} min</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedOrder.distance} miles</span>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                {selectedOrder.status === "pending" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                      onClick={() => setIsDetailsOpen(false)}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Decline
-                    </Button>
-                    <Button
-                      className="w-full sm:w-auto"
-                      onClick={() => setIsDetailsOpen(false)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept Order
-                    </Button>
-                  </>
-                )}
-                {selectedOrder.status === "accepted" && (
-                  <Button
-                    className="w-full"
-                    onClick={() => setIsDetailsOpen(false)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark as Picked Up
-                  </Button>
-                )}
-                {selectedOrder.status === "picked" && (
-                  <Button
-                    className="w-full"
-                    onClick={() => setIsDetailsOpen(false)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark as Delivered
-                  </Button>
-                )}
-                {(selectedOrder.status === "delivered" ||
-                  selectedOrder.status === "cancelled") && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setIsDetailsOpen(false)}
-                  >
-                    Close
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function OrderCard({
-  order,
-  onViewDetails,
-}: {
-  order: Order;
-  onViewDetails: () => void;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{order.restaurant.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">Order #{order.id}</p>
-          </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Delivery Orders</h1>
+        <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className={`
-              ${order.status === "pending" ? "bg-yellow-500" : ""}
-              ${order.status === "accepted" ? "bg-blue-500" : ""}
-              ${order.status === "picked" ? "bg-purple-500" : ""}
-              ${order.status === "delivered" ? "bg-green-500" : ""}
-              ${order.status === "cancelled" ? "bg-red-500" : ""}
-              text-white border-0
-            `}
+            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
           >
-            {getStatusText(order.status)}
+            Online
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="space-y-2">
-          <div className="flex items-start gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-sm">{order.customer.name}</p>
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {order.customer.address}
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{order.estimatedTime} min</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{order.distance} miles</span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <p className="font-semibold">${order.total.toFixed(2)}</p>
-        <div className="flex gap-2">
-          {order.status === "pending" && (
-            <>
-              <Button variant="outline" size="sm">
-                <XCircle className="h-4 w-4 mr-1" />
-                Decline
-              </Button>
-              <Button size="sm">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Accept
-              </Button>
-            </>
-          )}
-          {order.status === "accepted" && (
-            <>
-              <Button variant="outline" size="sm" onClick={onViewDetails}>
-                <Info className="h-4 w-4 mr-1" />
-                Details
-              </Button>
-              <Button size="sm">
-                <Navigation className="h-4 w-4 mr-1" />
-                Navigate
-              </Button>
-            </>
-          )}
-          {order.status === "picked" && (
-            <>
-              <Button variant="outline" size="sm" onClick={onViewDetails}>
-                <Info className="h-4 w-4 mr-1" />
-                Details
-              </Button>
-              <Button size="sm">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Deliver
-              </Button>
-            </>
-          )}
-          {(order.status === "delivered" || order.status === "cancelled") && (
-            <Button variant="outline" size="sm" onClick={onViewDetails}>
-              <Info className="h-4 w-4 mr-1" />
-              Details
-            </Button>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
-  );
-}
+      </div>
 
-function getStatusText(status: Order["status"]) {
-  switch (status) {
-    case "pending":
-      return "Pending Acceptance";
-    case "accepted":
-      return "Accepted - Pickup";
-    case "picked":
-      return "Picked Up - Delivering";
-    case "delivered":
-      return "Delivered";
-    case "cancelled":
-      return "Cancelled";
-    default:
-      return "Unknown";
-  }
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="pending">Pending Pickup</TabsTrigger>
+          <TabsTrigger value="active">Active Deliveries</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="all">All Orders</TabsTrigger>
+        </TabsList>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <TabsContent value={activeTab} className="mt-6 space-y-6">
+            {orders.length === 0 ? (
+              <div className="text-center py-12 bg-muted/20 rounded-lg">
+                <p className="text-muted-foreground">No orders found</p>
+              </div>
+            ) : (
+              orders.map((order) => (
+                <Card key={order.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          Order #{order.id}
+                          <Badge variant={getStatusBadgeVariant(order.status)}>
+                            {order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
+                          </Badge>
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Placed: {formatDateTime(order.createdAt)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          ${order.total.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {order.items.reduce(
+                            (sum, item) => sum + item.quantity,
+                            0,
+                          )}{" "}
+                          items
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="pb-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" /> Delivery Address
+                        </h3>
+                        <p className="text-sm">
+                          {formatAddress(order.address)}
+                        </p>
+
+                        <div className="mt-4">
+                          <h3 className="font-semibold mb-2 flex items-center gap-2">
+                            <Phone className="h-4 w-4" /> Customer
+                          </h3>
+                          <p className="text-sm">
+                            {order.user.name} - {order.user.phone}
+                          </p>
+                        </div>
+
+                        {order.deliveryNotes && (
+                          <div className="mt-4 p-2 bg-muted/30 rounded-md">
+                            <p className="text-sm font-medium">
+                              Delivery Notes:
+                            </p>
+                            <p className="text-sm">{order.deliveryNotes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold mb-2">Order Items</h3>
+                        <ul className="space-y-2">
+                          {order.items.map((item) => (
+                            <li
+                              key={item.id}
+                              className="flex items-center gap-2"
+                            >
+                              <div className="h-10 w-10 rounded-md overflow-hidden flex-shrink-0">
+                                <img
+                                  src={item.foodItem.image}
+                                  alt={item.foodItem.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">
+                                  {item.foodItem.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Qty: {item.quantity}
+                                </p>
+                              </div>
+                              <p className="text-sm font-medium">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="mt-4">
+                          <h3 className="font-semibold mb-2 flex items-center gap-2">
+                            <Clock className="h-4 w-4" /> Delivery Time
+                          </h3>
+                          <p className="text-sm">
+                            {order.status === "delivered"
+                              ? `Delivered: ${formatDateTime(order.actualDelivery!)}`
+                              : `Estimated: ${formatDateTime(order.estimatedDelivery)}`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="pt-4 flex flex-wrap gap-2">
+                    {order.status === "processing" && (
+                      <Button
+                        onClick={() =>
+                          handleUpdateStatus(
+                            order.id,
+                            "in-transit",
+                            "Driver has picked up the order",
+                          )
+                        }
+                        disabled={processingOrderId === order.id}
+                        className="flex-1"
+                      >
+                        {processingOrderId === order.id ? (
+                          <>
+                            <Spinner size="sm" className="mr-2" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Accept & Pickup
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {order.status === "in-transit" && (
+                      <>
+                        <Button
+                          variant="default"
+                          onClick={() =>
+                            handleUpdateStatus(
+                              order.id,
+                              "delivered",
+                              "Order has been delivered",
+                            )
+                          }
+                          disabled={processingOrderId === order.id}
+                          className="flex-1"
+                        >
+                          {processingOrderId === order.id ? (
+                            <>
+                              <Spinner size="sm" className="mr-2" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Mark as Delivered
+                            </>
+                          )}
+                        </Button>
+                        <Button variant="outline">
+                          <Navigation className="h-4 w-4 mr-2" />
+                          Navigate
+                        </Button>
+                        <Button variant="outline">
+                          <Phone className="h-4 w-4 mr-2" />
+                          Call Customer
+                        </Button>
+                      </>
+                    )}
+
+                    {order.status === "processing" && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          handleUpdateStatus(
+                            order.id,
+                            "cancelled",
+                            "Driver rejected the order",
+                          )
+                        }
+                        disabled={processingOrderId === order.id}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                    )}
+
+                    {(order.status === "delivered" ||
+                      order.status === "cancelled") && (
+                      <Button variant="outline" className="flex-1">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Report Issue
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+        )}
+      </Tabs>
+    </div>
+  );
 }
